@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiqup Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 15px;
+        }
+        
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: #fff;
+            padding: 20px 25px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 4px solid #23005b;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-logo {
+            max-width: 140px;
+            height: auto;
+        }
+        
+        .header-title {
+            border-left: 3px solid #6c65f7;
+            padding-left: 15px;
+        }
+        
+        .header h1 {
+            color: #23005b;
+            margin-bottom: 3px;
+            font-size: 22px;
+        }
+        
+        .header-subtitle {
+            color: #666;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .webhook-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        
+        .webhook-status.online {
+            background: #4caf50;
+            box-shadow: 0 0 8px #4caf50;
+        }
+        
+        .webhook-status.offline {
+            background: #f44336;
+            box-shadow: 0 0 8px #f44336;
+        }
+        
+        .header-right {
+            text-align: right;
+        }
+        
+        .header .last-updated {
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .refresh-btn, .export-btn {
+            background: linear-gradient(135deg, #6c65f7 0%, #23005b 100%);
+            color: #fff;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .refresh-btn:hover, .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 101, 247, 0.3);
+        }
+        
+        .filter-section {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #6c65f7;
+        }
+        
+        .filter-section h3 {
+            color: #23005b;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .filter-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        
+        .filter-control {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .filter-control label {
+            font-size: 10px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .filter-control input,
+        .filter-control select {
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+        
+        .filter-control input:focus,
+        .filter-control select:focus {
+            outline: none;
+            border-color: #6c65f7;
+        }
+        
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .apply-filter-btn, .clear-filter-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .apply-filter-btn {
+            background: linear-gradient(135deg, #6c65f7 0%, #23005b 100%);
+            color: #fff;
+        }
+        
+        .clear-filter-btn {
+            background: #fff;
+            color: #666;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #6c65f7;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card .label {
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        .stat-card .value {
+            color: #23005b;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .stat-card .change {
+            color: #6c65f7;
+            font-size: 11px;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+        
+        .stat-card .change.positive {
+            color: #4caf50;
+        }
+        
+        .stat-card .change.negative {
+            color: #f44336;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .chart-card {
+            background: #fff;
+            padding: 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-top: 3px solid #6c65f7;
+        }
+        
+        .chart-card h2 {
+            color: #23005b;
+            font-size: 14px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .chart-card canvas {
+            max-height: 250px !important;
+        }
+        
+        .heatmap-container {
+            overflow-x: auto;
+        }
+        
+        .heatmap {
+            display: grid;
+            grid-template-columns: 60px repeat(24, 1fr);
+            gap: 2px;
+            font-size: 11px;
+        }
+        
+        .heatmap-cell {
+            padding: 8px;
+            text-align: center;
+            border-radius: 4px;
+            min-width: 30px;
+            font-weight: 600;
+        }
+        
+        .heatmap-label {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .heatmap-hour {
+            font-weight: 600;
+            color: #666;
+            padding: 5px;
+        }
+        
+        .table-card {
+            background: #fff;
+            padding: 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-x: auto;
+            border-top: 3px solid #23005b;
+        }
+        
+        .table-card h2 {
+            color: #23005b;
+            font-size: 14px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f4f4f4;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #6c65f7;
+            color: #23005b;
+            font-size: 11px;
+        }
+        
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+        }
+        
+        tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .lead-quality-badge {
+            padding: 3px 7px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .lead-quality-high {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .lead-quality-medium {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .lead-quality-low {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: linear-gradient(135deg, #fee 0%, #fdd 100%);
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c33;
+        }
+        
+        .config-section {
+            background: linear-gradient(135deg, #fff 0%, #f9f9f9 100%);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            border-top: 4px solid #23005b;
+        }
+        
+        .config-section h2 {
+            color: #23005b;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        
+        .config-section input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-family: monospace;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+        
+        .config-section input:focus {
+            outline: none;
+            border-color: #6c65f7;
+        }
+        
+        .config-section button {
+            background: linear-gradient(135deg, #6c65f7 0%, #23005b 100%);
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .config-section button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 101, 247, 0.3);
+        }
+        
+        .powered-by {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 30px;
+            padding: 20px;
+        }
+        
+        .powered-by a {
+            color: #6c65f7;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .comparison-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .comparison-card {
+            background: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .comparison-card .period {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        
+        .comparison-card .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #23005b;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .pagination-btn {
+            background: linear-gradient(135deg, #6c65f7 0%, #23005b 100%);
+            color: #fff;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 101, 247, 0.3);
+        }
+        
+        .pagination-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .form-comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .form-comparison-card {
+            background: #f9f9f9;
+            padding: 18px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #6c65f7;
+            transition: all 0.2s;
+        }
+        
+        .form-comparison-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .form-comparison-card.highlight {
+            background: linear-gradient(135deg, #6c65f750 0%, #23005b20 100%);
+            border-left-color: #23005b;
+        }
+        
+        .form-comparison-title {
+            font-size: 11px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-comparison-value {
+            font-size: 34px;
+            font-weight: bold;
+            color: #23005b;
+            margin-bottom: 4px;
+        }
+        
+        .form-comparison-subtitle {
+            font-size: 10px;
+            color: #999;
+        }
+        
+        .multi-form-user {
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 3px solid #6c65f7;
+        }
+        
+        .multi-form-user-email {
+            font-weight: 600;
+            color: #23005b;
+            margin-bottom: 8px;
+        }
+        
+        .multi-form-user-forms {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .form-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .form-badge.new {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .form-badge.legacy {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Configuration Section -->
+        <div class="config-section" id="configSection">
+            <h2>⚙️ Webhook Configuration</h2>
+            <input type="text" id="webhookUrl" placeholder="n8n Webhook URL (e.g., https://your-n8n.com/webhook/analytics-data)" />
+            <button onclick="saveConfig()">Save & Load Data</button>
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <img src="https://cdn.prod.website-files.com/659d50aa6b5dee07e990053a/659e462164d15ff126e9b6cb_Quiqup_Master_Logos_RGB_Horizontal_Ghost%20(3)-p-500.png" 
+                     alt="Quiqup" 
+                     class="header-logo" />
+                <div class="header-title">
+                    <h1>Analytics Dashboard</h1>
+                    <div class="header-subtitle">
+                        <span class="webhook-status" id="webhookStatus"></span>
+                        <span>Real-time submission tracking</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="last-updated">Last updated: <span id="lastUpdated">Never</span></div>
+                <div class="header-actions">
+                    <button onclick="exportToCSV()" class="export-btn">
+                        <span>📥</span> Export CSV
+                    </button>
+                    <button onclick="fetchData()" class="refresh-btn">
+                        <span>🔄</span> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="loading" class="loading">Configure webhook to load data</div>
+
+        <!-- Filters -->
+        <div class="filter-section" id="filterSection" style="display: none;">
+            <h3>🔍 Filters & Search</h3>
+            <div class="filter-controls">
+                <div class="filter-control">
+                    <label>Date From</label>
+                    <input type="date" id="filterDateFrom" />
+                </div>
+                <div class="filter-control">
+                    <label>Date To</label>
+                    <input type="date" id="filterDateTo" />
+                </div>
+                <div class="filter-control">
+                    <label>Form Type</label>
+                    <select id="filterForm">
+                        <option value="">All Forms</option>
+                    </select>
+                </div>
+                <div class="filter-control">
+                    <label>Service Offering</label>
+                    <select id="filterService">
+                        <option value="">All Services</option>
+                    </select>
+                </div>
+                <div class="filter-control">
+                    <label>Search Email</label>
+                    <input type="text" id="filterEmail" placeholder="email@example.com" />
+                </div>
+                <div class="filter-control">
+                    <label>Orders/Month</label>
+                    <select id="filterOrders">
+                        <option value="">All Volumes</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="apply-filter-btn" onclick="applyFilters()">Apply Filters</button>
+                <button class="clear-filter-btn" onclick="clearFilters()">Clear All</button>
+            </div>
+        </div>
+
+        <!-- Week Comparison -->
+        <div class="comparison-section" id="comparisonSection" style="display: none;">
+            <div class="comparison-card">
+                <div class="period">This Week</div>
+                <div class="value" id="thisWeekValue">0</div>
+            </div>
+            <div class="comparison-card">
+                <div class="period">Last Week</div>
+                <div class="value" id="lastWeekValue">0</div>
+            </div>
+            <div class="comparison-card">
+                <div class="period">Change</div>
+                <div class="value" id="weekChangeValue">
+                    <span class="change" id="weekChange">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="label">Total Submissions</div>
+                <div class="value" id="totalSubmissions">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Last Hour</div>
+                <div class="value" id="lastHour">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Today</div>
+                <div class="value" id="today">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">This Week</div>
+                <div class="value" id="thisWeek">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Unique Emails</div>
+                <div class="value" id="uniqueEmails">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Gmail Users</div>
+                <div class="value" id="gmailUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Corporate Emails</div>
+                <div class="value" id="corporateEmails">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">High Value Leads</div>
+                <div class="value" id="highValueLeads">0</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid" id="chartsGrid" style="display: none;">
+            <div class="chart-card">
+                <h2>Submissions Per Hour (Last 24h)</h2>
+                <canvas id="hourlyChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Submissions Per Day (Last 30 days)</h2>
+                <canvas id="dailyChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Email Domain Breakdown</h2>
+                <canvas id="domainChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Lead Quality Distribution</h2>
+                <canvas id="leadQualityChart"></canvas>
+            </div>
+            <div class="chart-card" style="grid-column: span 2;">
+                <h2>Peak Hours Heatmap (Submissions by Day & Hour)</h2>
+                <div class="heatmap-container" id="heatmapContainer"></div>
+            </div>
+        </div>
+
+        <!-- Form Comparison Analysis -->
+        <div class="charts-grid" id="formComparisonSection" style="display: none;">
+            <div class="chart-card" style="grid-column: span 2;">
+                <h2>📋 Form Performance Comparison</h2>
+                <div class="form-comparison-grid">
+                    <div class="form-comparison-card">
+                        <div class="form-comparison-title">New Forms (Quick Capture)</div>
+                        <div class="form-comparison-value" id="newFormsCount">0</div>
+                        <div class="form-comparison-subtitle">contactus-downloadguide + contactus-quotation</div>
+                    </div>
+                    <div class="form-comparison-card">
+                        <div class="form-comparison-title">Legacy Form</div>
+                        <div class="form-comparison-value" id="legacyFormCount">0</div>
+                        <div class="form-comparison-subtitle">footer-contact_us_form</div>
+                    </div>
+                    <div class="form-comparison-card highlight">
+                        <div class="form-comparison-title">Conversion Rate</div>
+                        <div class="form-comparison-value" id="conversionRate">0%</div>
+                        <div class="form-comparison-subtitle">New forms vs Total</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <h2>Form Distribution Over Time</h2>
+                <canvas id="formTimelineChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h2>Form Type Breakdown</h2>
+                <canvas id="formTypeChart"></canvas>
+            </div>
+            
+            <div class="chart-card" style="grid-column: span 2;">
+                <h2>🔄 Multi-Form Submissions</h2>
+                <div id="multiFormTable"></div>
+            </div>
+        </div>
+
+        <!-- Additional Analytics -->
+        <div class="charts-grid" id="additionalAnalytics" style="display: none;">
+            <div class="chart-card">
+                <h2>📧 Top Corporate Domains</h2>
+                <div id="topDomainsTable"></div>
+            </div>
+            
+            <div class="chart-card">
+                <h2>⚡ Lead Velocity (Last 7 Days)</h2>
+                <canvas id="leadVelocityChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h2>📈 Daily Growth Rate</h2>
+                <canvas id="growthRateChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h2>⏰ Peak Submission Hours</h2>
+                <div id="peakHoursTable"></div>
+            </div>
+        </div>
+
+        <!-- Recent Submissions Table - AT THE BOTTOM -->
+        <div class="table-card" id="tableCard" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2>📋 Recent Submissions (Showing <span id="tableCount">0</span>)</h2>
+                <div class="pagination-controls">
+                    <button class="pagination-btn" onclick="previousPage()" id="prevBtn">← Previous</button>
+                    <span style="margin: 0 12px; color: #666; font-size: 12px;">Page <span id="currentPage">1</span> of <span id="totalPages">1</span></span>
+                    <button class="pagination-btn" onclick="nextPage()" id="nextBtn">Next →</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Email</th>
+                        <th>Domain</th>
+                        <th>Form</th>
+                        <th>Service</th>
+                        <th>Orders/Month</th>
+                        <th>Lead Quality</th>
+                    </tr>
+                </thead>
+                <tbody id="recentSubmissionsTable">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="powered-by">
+            <p>Powered by <a href="https://quiqup.com" target="_blank">Quiqup</a> | Built with n8n</p>
+            <p style="margin-top: 5px;">© 2026 Quiqup. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+        let config = { webhookUrl: '' };
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        let itemsPerPage = 15;
+        let paginatedData = [];
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updateTable();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateTable();
+            }
+        }
+
+        function updateTable() {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            paginatedData = filteredData.slice(startIndex, endIndex);
+            
+            updateRecentTable(paginatedData.slice().reverse());
+            
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+        }
+
+        // Load config from localStorage
+        function loadConfig() {
+            const saved = localStorage.getItem('dashboardConfig');
+            if (saved) {
+                config = JSON.parse(saved);
+                document.getElementById('webhookUrl').value = config.webhookUrl;
+                if (config.webhookUrl) {
+                    document.getElementById('configSection').style.display = 'none';
+                    fetchData();
+                }
+            }
+        }
+
+        // Save config to localStorage
+        function saveConfig() {
+            config.webhookUrl = document.getElementById('webhookUrl').value.trim();
+            
+            if (!config.webhookUrl) {
+                showError('Please enter Webhook URL');
+                return;
+            }
+            
+            localStorage.setItem('dashboardConfig', JSON.stringify(config));
+            document.getElementById('configSection').style.display = 'none';
+            fetchData();
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 5000);
+        }
+
+        async function fetchData() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('statsGrid').style.display = 'none';
+            document.getElementById('chartsGrid').style.display = 'none';
+            document.getElementById('filterSection').style.display = 'none';
+            document.getElementById('comparisonSection').style.display = 'none';
+            document.getElementById('tableCard').style.display = 'none';
+            document.getElementById('webhookStatus').className = 'webhook-status';
+
+            try {
+                const response = await fetch(config.webhookUrl, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Webhook returned ${response.status}: ${errorText.substring(0, 200)}`);
+                }
+
+                const result = await response.json();
+                const data = result.data || result;
+                const rows = Array.isArray(data) ? data : [data];
+                
+                if (rows.length === 0) {
+                    throw new Error('No data returned from webhook');
+                }
+                
+                allData = rows;
+                filteredData = rows;
+                
+                populateFilterOptions(rows);
+                processData(rows);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('statsGrid').style.display = 'grid';
+                document.getElementById('chartsGrid').style.display = 'grid';
+                document.getElementById('filterSection').style.display = 'block';
+                document.getElementById('comparisonSection').style.display = 'grid';
+                document.getElementById('formComparisonSection').style.display = 'grid';
+                document.getElementById('additionalAnalytics').style.display = 'grid';
+                document.getElementById('tableCard').style.display = 'block';
+                document.getElementById('webhookStatus').className = 'webhook-status online';
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('webhookStatus').className = 'webhook-status offline';
+                showError('Error: ' + error.message);
+                console.error('Fetch error:', error);
+            }
+        }
+
+        function populateFilterOptions(rows) {
+            // Forms
+            const forms = [...new Set(rows.map(r => r.form).filter(Boolean))];
+            const formSelect = document.getElementById('filterForm');
+            formSelect.innerHTML = '<option value="">All Forms</option>' + 
+                forms.map(f => `<option value="${f}">${f}</option>`).join('');
+
+            // Services
+            const services = [...new Set(rows.map(r => r.service_offering).filter(Boolean))];
+            const serviceSelect = document.getElementById('filterService');
+            serviceSelect.innerHTML = '<option value="">All Services</option>' + 
+                services.map(s => `<option value="${s}">${s}</option>`).join('');
+
+            // Orders
+            const orders = [...new Set(rows.map(r => r.orderspermonth).filter(Boolean))];
+            const ordersSelect = document.getElementById('filterOrders');
+            ordersSelect.innerHTML = '<option value="">All Volumes</option>' + 
+                orders.map(o => `<option value="${o}">${o}</option>`).join('');
+        }
+
+        function applyFilters() {
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+            const form = document.getElementById('filterForm').value;
+            const service = document.getElementById('filterService').value;
+            const email = document.getElementById('filterEmail').value.toLowerCase();
+            const orders = document.getElementById('filterOrders').value;
+
+            filteredData = allData.filter(row => {
+                const rowDate = new Date(row.createdAt);
+                
+                if (dateFrom && rowDate < new Date(dateFrom)) return false;
+                if (dateTo && rowDate > new Date(dateTo + 'T23:59:59')) return false;
+                if (form && row.form !== form) return false;
+                if (service && row.service_offering !== service) return false;
+                if (email && !row.Email?.toLowerCase().includes(email)) return false;
+                if (orders && row.orderspermonth !== orders) return false;
+                
+                return true;
+            });
+
+            currentPage = 1;
+            processData(filteredData);
+        }
+
+        function clearFilters() {
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('filterForm').value = '';
+            document.getElementById('filterService').value = '';
+            document.getElementById('filterEmail').value = '';
+            document.getElementById('filterOrders').value = '';
+            
+            filteredData = allData;
+            currentPage = 1;
+            processData(filteredData);
+        }
+
+        function getLeadQuality(ordersPerMonth) {
+            if (!ordersPerMonth) return 'low';
+            const lower = ordersPerMonth.toLowerCase();
+            
+            // High: 500+
+            if (lower.includes('500+')) return 'high';
+            
+            // Medium: 151-500
+            if (lower.includes('151') || lower.includes('151-500')) return 'medium';
+            
+            // Low: Just starting, 1-150
+            return 'low';
+        }
+
+        function getDomain(email) {
+            if (!email) return 'unknown';
+            return email.split('@')[1] || 'unknown';
+        }
+
+        function processData(rows) {
+            const now = new Date();
+            const oneHourAgo = new Date(now - 60 * 60 * 1000);
+            const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+            const oneWeekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+            const twoWeeksAgo = new Date(now - 14 * 24 * 60 * 60 * 1000);
+
+            const parseDate = (dateStr) => {
+                const date = new Date(dateStr);
+                return isNaN(date) ? null : date;
+            };
+
+            // Calculate stats
+            const totalSubmissions = rows.length;
+            const lastHour = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                return date && date > oneHourAgo;
+            }).length;
+            const today = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                return date && date > oneDayAgo;
+            }).length;
+            const thisWeek = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                return date && date > oneWeekAgo;
+            }).length;
+            const lastWeek = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                return date && date > twoWeeksAgo && date <= oneWeekAgo;
+            }).length;
+            
+            const weekChange = lastWeek === 0 ? 100 : ((thisWeek - lastWeek) / lastWeek * 100).toFixed(1);
+            const weekChangeClass = weekChange > 0 ? 'positive' : weekChange < 0 ? 'negative' : '';
+
+            const uniqueEmails = new Set(rows.map(r => r.Email)).size;
+            const gmailUsers = rows.filter(r => r.Email?.toLowerCase().includes('@gmail.com')).length;
+            const corporateEmails = rows.filter(r => {
+                const domain = getDomain(r.Email).toLowerCase();
+                return domain !== 'gmail.com' && domain !== 'yahoo.com' && domain !== 'hotmail.com' && domain !== 'outlook.com' && domain !== 'unknown';
+            }).length;
+            const highValueLeads = rows.filter(r => getLeadQuality(r.orderspermonth) === 'high').length;
+
+            // Update stat cards
+            document.getElementById('totalSubmissions').textContent = totalSubmissions;
+            document.getElementById('lastHour').textContent = lastHour;
+            document.getElementById('today').textContent = today;
+            document.getElementById('thisWeek').textContent = thisWeek;
+            document.getElementById('uniqueEmails').textContent = uniqueEmails;
+            document.getElementById('gmailUsers').textContent = gmailUsers;
+            document.getElementById('corporateEmails').textContent = corporateEmails;
+            document.getElementById('highValueLeads').textContent = highValueLeads;
+
+            // Week comparison
+            document.getElementById('thisWeekValue').textContent = thisWeek;
+            document.getElementById('lastWeekValue').textContent = lastWeek;
+            document.getElementById('weekChange').textContent = (weekChange > 0 ? '+' : '') + weekChange + '%';
+            document.getElementById('weekChange').className = 'change ' + weekChangeClass;
+
+            // Charts
+            createOrUpdateChart('hourlyChart', 'bar', createHourlyData(rows, oneDayAgo));
+            createOrUpdateChart('dailyChart', 'line', createDailyData(rows, new Date(now - 30 * 24 * 60 * 60 * 1000)));
+            createOrUpdateChart('domainChart', 'doughnut', createDomainData(rows));
+            createOrUpdateChart('leadQualityChart', 'pie', createLeadQualityData(rows));
+            
+            // Heatmap
+            createHeatmap(rows);
+
+            // Table
+            currentPage = 1;
+            updateTable();
+            
+            // Form comparison analytics
+            analyzeFormPerformance(rows);
+            
+            // Additional analytics
+            createAdditionalAnalytics(rows);
+        }
+
+        function createHourlyData(rows, since) {
+            const hourlyCount = {};
+            const hours = [];
+            const hourDates = [];
+            
+            for (let i = 23; i >= 0; i--) {
+                const hour = new Date(Date.now() - i * 60 * 60 * 1000);
+                const key = hour.toISOString().slice(0, 13);
+                hourlyCount[key] = 0;
+                hours.push(key);
+                hourDates.push(hour);
+            }
+
+            rows.filter(r => {
+                const date = new Date(r.createdAt);
+                return !isNaN(date) && date > since;
+            }).forEach(r => {
+                const date = new Date(r.createdAt);
+                const hour = date.toISOString().slice(0, 13);
+                if (hourlyCount.hasOwnProperty(hour)) {
+                    hourlyCount[hour]++;
+                }
+            });
+
+            return {
+                labels: hourDates.map(h => h.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })),
+                datasets: [{
+                    label: 'Submissions',
+                    data: hours.map(h => hourlyCount[h]),
+                    backgroundColor: '#6c65f7',
+                    borderColor: '#6c65f7',
+                    borderWidth: 1
+                }]
+            };
+        }
+
+        function createDailyData(rows, since) {
+            const dailyCount = {};
+            const days = [];
+            const dayDates = [];
+            
+            for (let i = 29; i >= 0; i--) {
+                const day = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+                const key = day.toISOString().slice(0, 10);
+                dailyCount[key] = 0;
+                days.push(key);
+                dayDates.push(day);
+            }
+
+            rows.filter(r => {
+                const date = new Date(r.createdAt);
+                return !isNaN(date) && date > since;
+            }).forEach(r => {
+                const date = new Date(r.createdAt);
+                const day = date.toISOString().slice(0, 10);
+                if (dailyCount.hasOwnProperty(day)) {
+                    dailyCount[day]++;
+                }
+            });
+
+            return {
+                labels: dayDates.map(d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                datasets: [{
+                    label: 'Submissions',
+                    data: days.map(d => dailyCount[d]),
+                    backgroundColor: '#6c65f750',
+                    borderColor: '#6c65f7',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            };
+        }
+
+        function createDomainData(rows) {
+            const domains = {};
+            rows.forEach(r => {
+                const domain = getDomain(r.Email);
+                domains[domain] = (domains[domain] || 0) + 1;
+            });
+
+            const sorted = Object.entries(domains).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+            return {
+                labels: sorted.map(([domain]) => domain),
+                datasets: [{
+                    data: sorted.map(([, count]) => count),
+                    backgroundColor: ['#6c65f7', '#23005b', '#9c93ff', '#4a42c7', '#7b73e6', '#5a54d6', '#3d38a8', '#2e2b7a']
+                }]
+            };
+        }
+
+        function createLeadQualityData(rows) {
+            const quality = { high: 0, medium: 0, low: 0 };
+            rows.forEach(r => {
+                const q = getLeadQuality(r.orderspermonth);
+                quality[q]++;
+            });
+
+            return {
+                labels: ['High Value (500+)', 'Medium Value (151-500)', 'Low Value (<150)'],
+                datasets: [{
+                    data: [quality.high, quality.medium, quality.low],
+                    backgroundColor: ['#4caf50', '#ff9800', '#f44336']
+                }]
+            };
+        }
+
+        function createHeatmap(rows) {
+            const heatmapData = {};
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            // Initialize
+            days.forEach(day => {
+                heatmapData[day] = Array(24).fill(0);
+            });
+
+            // Count submissions
+            rows.forEach(r => {
+                const date = new Date(r.createdAt);
+                if (!isNaN(date)) {
+                    const day = days[date.getDay()];
+                    const hour = date.getHours();
+                    heatmapData[day][hour]++;
+                }
+            });
+
+            // Find max for color scaling
+            const maxCount = Math.max(...days.flatMap(day => heatmapData[day]));
+
+            // Generate heatmap HTML
+            let html = '<div class="heatmap">';
+            html += '<div class="heatmap-cell"></div>'; // Top-left corner
+            for (let h = 0; h < 24; h++) {
+                html += `<div class="heatmap-hour">${h}h</div>`;
+            }
+            
+            days.forEach(day => {
+                html += `<div class="heatmap-label">${day}</div>`;
+                for (let h = 0; h < 24; h++) {
+                    const count = heatmapData[day][h];
+                    const intensity = maxCount === 0 ? 0 : count / maxCount;
+                    const color = intensity === 0 ? '#f5f5f5' : `rgba(108, 101, 247, ${0.2 + intensity * 0.8})`;
+                    html += `<div class="heatmap-cell" style="background: ${color}" title="${day} ${h}:00 - ${count} submissions">${count || ''}</div>`;
+                }
+            });
+            html += '</div>';
+            
+            document.getElementById('heatmapContainer').innerHTML = html;
+        }
+
+        function createOrUpdateChart(canvasId, type, data, horizontal = false) {
+            const ctx = document.getElementById(canvasId);
+            
+            if (charts[canvasId]) {
+                charts[canvasId].data = data;
+                charts[canvasId].update();
+            } else {
+                const options = {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: type === 'pie' || type === 'doughnut',
+                            position: 'bottom'
+                        }
+                    }
+                };
+
+                if (type === 'bar' || type === 'line') {
+                    options.scales = {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    };
+                    
+                    if (horizontal) {
+                        options.indexAxis = 'y';
+                        options.scales = {
+                            x: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        };
+                    }
+                }
+
+                charts[canvasId] = new Chart(ctx, {
+                    type: type,
+                    data: data,
+                    options: options
+                });
+            }
+        }
+
+        function updateRecentTable(recentRows) {
+            const tbody = document.getElementById('recentSubmissionsTable');
+            document.getElementById('tableCount').textContent = filteredData.length;
+            
+            tbody.innerHTML = recentRows.map(row => {
+                const date = new Date(row.createdAt);
+                const dateStr = isNaN(date) ? 'Invalid Date' : date.toLocaleString();
+                const domain = getDomain(row.Email);
+                const quality = getLeadQuality(row.orderspermonth);
+                const qualityClass = `lead-quality-${quality}`;
+                const qualityLabel = quality === 'high' ? 'High Value' : quality === 'medium' ? 'Medium' : 'Low Value';
+                
+                return `
+                <tr>
+                    <td>${dateStr}</td>
+                    <td>${row.Email}</td>
+                    <td>${domain}</td>
+                    <td>${row.form || '-'}</td>
+                    <td>${row.service_offering || '-'}</td>
+                    <td>${row.orderspermonth || '-'}</td>
+                    <td><span class="lead-quality-badge ${qualityClass}">${qualityLabel}</span></td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        function analyzeFormPerformance(rows) {
+            const newForms = ['contactus-downloadguide', 'contactus-quotation'];
+            const legacyForm = 'footer-contact_us_form';
+            
+            // Count by form type
+            const newFormsCount = rows.filter(r => newForms.includes(r.form)).length;
+            const legacyFormCount = rows.filter(r => r.form === legacyForm).length;
+            const totalCount = rows.length;
+            const conversionRate = totalCount === 0 ? 0 : ((newFormsCount / totalCount) * 100).toFixed(1);
+            
+            // Update form comparison cards
+            document.getElementById('newFormsCount').textContent = newFormsCount;
+            document.getElementById('legacyFormCount').textContent = legacyFormCount;
+            document.getElementById('conversionRate').textContent = conversionRate + '%';
+            
+            // Find multi-form users
+            const userForms = {};
+            rows.forEach(r => {
+                if (!userForms[r.Email]) {
+                    userForms[r.Email] = new Set();
+                }
+                userForms[r.Email].add(r.form);
+            });
+            
+            const multiFormUsers = Object.entries(userForms)
+                .filter(([email, forms]) => forms.size > 1)
+                .map(([email, forms]) => ({ email, forms: Array.from(forms) }));
+            
+            // Display multi-form users
+            const multiFormHtml = multiFormUsers.length === 0 ? 
+                '<p style="color: #666; text-align: center; padding: 20px;">No users have submitted multiple forms yet</p>' :
+                multiFormUsers.map(user => {
+                    const formBadges = user.forms.map(form => {
+                        const isNew = newForms.includes(form);
+                        const badgeClass = isNew ? 'new' : 'legacy';
+                        const displayName = form === 'contactus-downloadguide' ? 'Download Guide' :
+                                          form === 'contactus-quotation' ? 'Quotation' :
+                                          'Legacy Form';
+                        return `<span class="form-badge ${badgeClass}">${displayName}</span>`;
+                    }).join('');
+                    
+                    return `
+                        <div class="multi-form-user">
+                            <div class="multi-form-user-email">${user.email}</div>
+                            <div class="multi-form-user-forms">${formBadges}</div>
+                        </div>
+                    `;
+                }).join('');
+            
+            document.getElementById('multiFormTable').innerHTML = multiFormHtml;
+            
+            // Form timeline chart
+            createFormTimelineChart(rows);
+            
+            // Form type breakdown
+            const formCounts = {};
+            rows.forEach(r => {
+                const form = r.form || 'Unknown';
+                formCounts[form] = (formCounts[form] || 0) + 1;
+            });
+            
+            const formLabels = Object.keys(formCounts).map(form => {
+                if (form === 'contactus-downloadguide') return 'Download Guide (New)';
+                if (form === 'contactus-quotation') return 'Quotation (New)';
+                if (form === 'footer-contact_us_form') return 'Legacy Form';
+                return form;
+            });
+            
+            createOrUpdateChart('formTypeChart', 'doughnut', {
+                labels: formLabels,
+                datasets: [{
+                    data: Object.values(formCounts),
+                    backgroundColor: ['#4caf50', '#8bc34a', '#ff9800', '#6c65f7', '#23005b']
+                }]
+            });
+        }
+
+        function createFormTimelineChart(rows) {
+            const days = [];
+            const dayDates = [];
+            const newFormsCounts = {};
+            const legacyFormCounts = {};
+            
+            const newForms = ['contactus-downloadguide', 'contactus-quotation'];
+            const legacyForm = 'footer-contact_us_form';
+            
+            // Initialize last 30 days
+            for (let i = 29; i >= 0; i--) {
+                const day = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+                const key = day.toISOString().slice(0, 10);
+                newFormsCounts[key] = 0;
+                legacyFormCounts[key] = 0;
+                days.push(key);
+                dayDates.push(day);
+            }
+
+            // Count submissions per day by form type
+            rows.forEach(r => {
+                const date = new Date(r.createdAt);
+                if (!isNaN(date)) {
+                    const day = date.toISOString().slice(0, 10);
+                    if (days.includes(day)) {
+                        if (newForms.includes(r.form)) {
+                            newFormsCounts[day]++;
+                        } else if (r.form === legacyForm) {
+                            legacyFormCounts[day]++;
+                        }
+                    }
+                }
+            });
+
+            createOrUpdateChart('formTimelineChart', 'line', {
+                labels: dayDates.map(d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                datasets: [
+                    {
+                        label: 'New Forms',
+                        data: days.map(d => newFormsCounts[d]),
+                        backgroundColor: '#4caf5050',
+                        borderColor: '#4caf50',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Legacy Form',
+                        data: days.map(d => legacyFormCounts[d]),
+                        backgroundColor: '#ff980050',
+                        borderColor: '#ff9800',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            });
+        }
+
+        function createAdditionalAnalytics(rows) {
+            // Top corporate domains (non-free email)
+            const domainCounts = {};
+            rows.forEach(r => {
+                const domain = getDomain(r.Email).toLowerCase();
+                if (domain !== 'gmail.com' && domain !== 'yahoo.com' && domain !== 'hotmail.com' && 
+                    domain !== 'outlook.com' && domain !== 'unknown') {
+                    domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+                }
+            });
+            
+            const topDomains = Object.entries(domainCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            
+            const topDomainsHtml = topDomains.length === 0 ?
+                '<p style="color: #666; padding: 10px; font-size: 12px;">No corporate domains yet</p>' :
+                `<table style="width: 100%; font-size: 11px;">
+                    <tr><th style="text-align: left; padding: 6px; font-size: 10px;">Domain</th><th style="text-align: right; padding: 6px; font-size: 10px;">Count</th></tr>
+                    ${topDomains.map(([domain, count]) => 
+                        `<tr><td style="padding: 6px;">${domain}</td><td style="text-align: right; padding: 6px;"><strong>${count}</strong></td></tr>`
+                    ).join('')}
+                </table>`;
+            
+            document.getElementById('topDomainsTable').innerHTML = topDomainsHtml;
+            
+            // Lead velocity (submissions per day for last 7 days)
+            const velocityData = {};
+            for (let i = 6; i >= 0; i--) {
+                const day = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+                const key = day.toISOString().slice(0, 10);
+                velocityData[key] = 0;
+            }
+            
+            rows.forEach(r => {
+                const date = new Date(r.createdAt);
+                if (!isNaN(date)) {
+                    const day = date.toISOString().slice(0, 10);
+                    if (velocityData.hasOwnProperty(day)) {
+                        velocityData[day]++;
+                    }
+                }
+            });
+            
+            const velocityLabels = Object.keys(velocityData).map(d => 
+                new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+            );
+            const velocityValues = Object.values(velocityData);
+            
+            createOrUpdateChart('leadVelocityChart', 'bar', {
+                labels: velocityLabels,
+                datasets: [{
+                    label: 'Submissions',
+                    data: velocityValues,
+                    backgroundColor: '#6c65f7',
+                    borderColor: '#6c65f7',
+                    borderWidth: 1
+                }]
+            });
+            
+            // Growth rate (day over day % change)
+            const growthRates = [];
+            const growthLabels = [];
+            for (let i = 1; i < velocityValues.length; i++) {
+                const prev = velocityValues[i - 1];
+                const curr = velocityValues[i];
+                const rate = prev === 0 ? (curr > 0 ? 100 : 0) : ((curr - prev) / prev * 100);
+                growthRates.push(rate.toFixed(1));
+                growthLabels.push(velocityLabels[i]);
+            }
+            
+            createOrUpdateChart('growthRateChart', 'line', {
+                labels: growthLabels,
+                datasets: [{
+                    label: 'Growth Rate (%)',
+                    data: growthRates,
+                    backgroundColor: '#4caf5050',
+                    borderColor: '#4caf50',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            });
+            
+            // Peak submission hours
+            const hourCounts = Array(24).fill(0);
+            rows.forEach(r => {
+                const date = new Date(r.createdAt);
+                if (!isNaN(date)) {
+                    hourCounts[date.getHours()]++;
+                }
+            });
+            
+            const topHours = hourCounts
+                .map((count, hour) => ({ hour, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 5);
+            
+            const peakHoursHtml = topHours.length === 0 || topHours[0].count === 0 ?
+                '<p style="color: #666; padding: 10px; font-size: 12px;">Not enough data</p>' :
+                `<table style="width: 100%; font-size: 11px;">
+                    <tr><th style="text-align: left; padding: 6px; font-size: 10px;">Hour</th><th style="text-align: right; padding: 6px; font-size: 10px;">Submissions</th></tr>
+                    ${topHours.map(({ hour, count }) => 
+                        `<tr><td style="padding: 6px;">${hour}:00 - ${hour}:59</td><td style="text-align: right; padding: 6px;"><strong>${count}</strong></td></tr>`
+                    ).join('')}
+                </table>`;
+            
+            document.getElementById('peakHoursTable').innerHTML = peakHoursHtml;
+        }
+
+        function exportToCSV() {
+            if (filteredData.length === 0) {
+                showError('No data to export');
+                return;
+            }
+
+            const headers = ['Created At', 'Email', 'Domain', 'Form', 'Service Offering', 'Orders Per Month', 'Lead Quality'];
+            const rows = filteredData.map(row => {
+                const date = new Date(row.createdAt);
+                const dateStr = isNaN(date) ? '' : date.toISOString();
+                const domain = getDomain(row.Email);
+                const quality = getLeadQuality(row.orderspermonth);
+                
+                return [
+                    dateStr,
+                    row.Email || '',
+                    domain,
+                    row.form || '',
+                    row.service_offering || '',
+                    row.orderspermonth || '',
+                    quality
+                ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(',');
+            });
+
+            const csv = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `quiqup-submissions-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                fetchData();
+            }
+            if (e.key === 'e' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                exportToCSV();
+            }
+        });
+
+        // Load config on page load
+        loadConfig();
+    </script>
+</body>
+</html>
