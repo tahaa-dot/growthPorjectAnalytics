@@ -589,6 +589,185 @@
             background: #fff3e0;
             color: #ef6c00;
         }
+        
+        .alerts-widget {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border-left: 4px solid #ff9800;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.2);
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: #e65100;
+            margin-bottom: 10px;
+        }
+        
+        .alert-count {
+            background: #ff9800;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .alert-item {
+            background: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-left: 3px solid #ff9800;
+        }
+        
+        .alert-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .alert-icon {
+            font-size: 16px;
+        }
+        
+        .hot-leads-section {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+            border-top: 4px solid #4caf50;
+        }
+        
+        .hot-leads-header {
+            margin-bottom: 15px;
+        }
+        
+        .hot-leads-header h2 {
+            color: #2e7d32;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        .hot-leads-subtitle {
+            color: #558b2f;
+            font-size: 12px;
+        }
+        
+        .hot-lead-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #4caf50;
+            transition: all 0.2s;
+        }
+        
+        .hot-lead-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        
+        .hot-lead-card:last-child {
+            margin-bottom: 0;
+        }
+        
+        .hot-lead-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .hot-lead-email {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2e7d32;
+        }
+        
+        .hot-lead-score {
+            background: #4caf50;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .hot-lead-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .hot-lead-detail {
+            font-size: 11px;
+        }
+        
+        .hot-lead-detail-label {
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+        
+        .hot-lead-detail-value {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .hot-lead-badges {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        
+        .hot-lead-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-new-form {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .badge-corporate {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+        
+        .badge-high-value {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .badge-multi-submit {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        
+        .no-hot-leads {
+            text-align: center;
+            padding: 30px;
+            color: #558b2f;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -629,6 +808,24 @@
 
         <div id="error" class="error" style="display: none;"></div>
         <div id="loading" class="loading">Configure webhook to load data</div>
+
+        <!-- Smart Alerts Widget -->
+        <div class="alerts-widget" id="alertsWidget" style="display: none;">
+            <div class="alert-header">
+                <span>🚨 Smart Alerts</span>
+                <span class="alert-count" id="alertCount">0</span>
+            </div>
+            <div id="alertsList"></div>
+        </div>
+
+        <!-- Hot Leads Section -->
+        <div class="hot-leads-section" id="hotLeadsSection" style="display: none;">
+            <div class="hot-leads-header">
+                <h2>🔥 Hot Leads - Action Required</h2>
+                <div class="hot-leads-subtitle">High-value leads from the last 24 hours that need immediate follow-up</div>
+            </div>
+            <div id="hotLeadsList"></div>
+        </div>
 
         <!-- Filters -->
         <div class="filter-section" id="filterSection" style="display: none;">
@@ -971,6 +1168,8 @@
                 processData(rows);
                 
                 document.getElementById('loading').style.display = 'none';
+                document.getElementById('alertsWidget').style.display = 'block';
+                document.getElementById('hotLeadsSection').style.display = 'block';
                 document.getElementById('statsGrid').style.display = 'grid';
                 document.getElementById('chartsGrid').style.display = 'grid';
                 document.getElementById('filterSection').style.display = 'block';
@@ -1046,6 +1245,182 @@
             processData(filteredData);
         }
 
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            
+            if (diffMins < 60) return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+            return date.toLocaleDateString();
+        }
+
+        function generateSmartAlerts(rows, parseDate, oneDayAgo, oneWeekAgo) {
+            const alerts = [];
+            
+            // Check for duplicate submissions (high intent)
+            const emailCounts = {};
+            rows.forEach(r => {
+                emailCounts[r.Email] = (emailCounts[r.Email] || 0) + 1;
+            });
+            const multiSubmitters = Object.entries(emailCounts).filter(([, count]) => count >= 2).length;
+            if (multiSubmitters > 0) {
+                alerts.push({
+                    icon: '🔄',
+                    text: `${multiSubmitters} user${multiSubmitters > 1 ? 's have' : ' has'} submitted multiple forms (high intent!)`
+                });
+            }
+            
+            // Check for new high-value leads in last 24h
+            const recentHighValue = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                return date && date > oneDayAgo && getLeadQuality(r.orderspermonth) === 'high';
+            }).length;
+            if (recentHighValue > 0) {
+                alerts.push({
+                    icon: '💎',
+                    text: `${recentHighValue} new high-value lead${recentHighValue > 1 ? 's' : ''} in the last 24 hours`
+                });
+            }
+            
+            // Check for corporate email submissions
+            const recentCorporate = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                const domain = getDomain(r.Email).toLowerCase();
+                const isCorporate = domain !== 'gmail.com' && domain !== 'yahoo.com' && 
+                                   domain !== 'hotmail.com' && domain !== 'outlook.com' && domain !== 'unknown';
+                return date && date > oneDayAgo && isCorporate;
+            }).length;
+            if (recentCorporate > 0) {
+                alerts.push({
+                    icon: '🏢',
+                    text: `${recentCorporate} corporate email${recentCorporate > 1 ? 's' : ''} submitted today`
+                });
+            }
+            
+            // Check velocity trends
+            const thisWeek = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                return date && date > oneWeekAgo;
+            }).length;
+            const lastWeek = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+                return date && date > twoWeeksAgo && date <= oneWeekAgo;
+            }).length;
+            
+            if (lastWeek > 0) {
+                const change = ((thisWeek - lastWeek) / lastWeek * 100).toFixed(0);
+                if (Math.abs(change) >= 20) {
+                    alerts.push({
+                        icon: change > 0 ? '📈' : '📉',
+                        text: `Lead velocity ${change > 0 ? 'up' : 'down'} ${Math.abs(change)}% vs last week`
+                    });
+                }
+            }
+            
+            // Check for new form adoption
+            const newForms = ['contactus-downloadguide', 'contactus-quotation'];
+            const recentNewForms = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                return date && date > oneDayAgo && newForms.includes(r.form);
+            }).length;
+            if (recentNewForms > 0) {
+                alerts.push({
+                    icon: '✨',
+                    text: `${recentNewForms} submission${recentNewForms > 1 ? 's' : ''} via new forms today`
+                });
+            }
+            
+            // Display alerts
+            document.getElementById('alertCount').textContent = alerts.length;
+            if (alerts.length === 0) {
+                document.getElementById('alertsList').innerHTML = '<div class="alert-item"><span class="alert-icon">✅</span>All quiet - no alerts</div>';
+            } else {
+                document.getElementById('alertsList').innerHTML = alerts.map(alert => 
+                    `<div class="alert-item"><span class="alert-icon">${alert.icon}</span>${alert.text}</div>`
+                ).join('');
+            }
+        }
+
+        function generateHotLeads(rows, parseDate, oneDayAgo) {
+            const recentRows = rows.filter(r => {
+                const date = parseDate(r.createdAt);
+                return date && date > oneDayAgo;
+            });
+            
+            const hotLeads = recentRows.map(row => {
+                const quality = getLeadQuality(row.orderspermonth);
+                const domain = getDomain(row.Email).toLowerCase();
+                const isCorporate = domain !== 'gmail.com' && domain !== 'yahoo.com' && 
+                                   domain !== 'hotmail.com' && domain !== 'outlook.com' && domain !== 'unknown';
+                const newForms = ['contactus-downloadguide', 'contactus-quotation'];
+                const isNewForm = newForms.includes(row.form);
+                
+                const submissionCount = rows.filter(r => r.Email === row.Email).length;
+                
+                let score = 0;
+                if (quality === 'high') score += 50;
+                if (quality === 'medium') score += 25;
+                if (isCorporate) score += 20;
+                if (isNewForm) score += 15;
+                if (submissionCount > 1) score += 20;
+                
+                return { ...row, score, quality, isCorporate, isNewForm, submissionCount };
+            })
+            .filter(lead => lead.quality !== 'low')
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5);
+            
+            if (hotLeads.length === 0) {
+                document.getElementById('hotLeadsList').innerHTML = 
+                    '<div class="no-hot-leads">No hot leads in the last 24 hours. Check back soon!</div>';
+            } else {
+                document.getElementById('hotLeadsList').innerHTML = hotLeads.map(lead => {
+                    const badges = [];
+                    if (lead.isNewForm) badges.push('<span class="hot-lead-badge badge-new-form">New Form</span>');
+                    if (lead.isCorporate) badges.push('<span class="hot-lead-badge badge-corporate">Corporate</span>');
+                    if (lead.quality === 'high') badges.push('<span class="hot-lead-badge badge-high-value">High Value</span>');
+                    if (lead.submissionCount > 1) badges.push('<span class="hot-lead-badge badge-multi-submit">×' + lead.submissionCount + ' Submits</span>');
+                    
+                    const timeAgo = getTimeAgo(new Date(lead.createdAt));
+                    
+                    return `
+                        <div class="hot-lead-card">
+                            <div class="hot-lead-header">
+                                <div class="hot-lead-email">${lead.Email}</div>
+                                <div class="hot-lead-score">Score: ${lead.score}</div>
+                            </div>
+                            <div class="hot-lead-details">
+                                <div class="hot-lead-detail">
+                                    <div class="hot-lead-detail-label">Domain</div>
+                                    <div class="hot-lead-detail-value">${getDomain(lead.Email)}</div>
+                                </div>
+                                <div class="hot-lead-detail">
+                                    <div class="hot-lead-detail-label">Form</div>
+                                    <div class="hot-lead-detail-value">${lead.form || '-'}</div>
+                                </div>
+                                <div class="hot-lead-detail">
+                                    <div class="hot-lead-detail-label">Service</div>
+                                    <div class="hot-lead-detail-value">${lead.service_offering || '-'}</div>
+                                </div>
+                                <div class="hot-lead-detail">
+                                    <div class="hot-lead-detail-label">Volume</div>
+                                    <div class="hot-lead-detail-value">${lead.orderspermonth || '-'}</div>
+                                </div>
+                                <div class="hot-lead-detail">
+                                    <div class="hot-lead-detail-label">Submitted</div>
+                                    <div class="hot-lead-detail-value">${timeAgo}</div>
+                                </div>
+                            </div>
+                            <div class="hot-lead-badges">${badges.join('')}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
         function getLeadQuality(ordersPerMonth) {
             if (!ordersPerMonth) return 'low';
             const lower = ordersPerMonth.toLowerCase();
@@ -1076,6 +1451,10 @@
                 const date = new Date(dateStr);
                 return isNaN(date) ? null : date;
             };
+
+            // Generate Smart Alerts and Hot Leads FIRST
+            generateSmartAlerts(rows, parseDate, oneDayAgo, oneWeekAgo);
+            generateHotLeads(rows, parseDate, oneDayAgo);
 
             // Calculate stats
             const totalSubmissions = rows.length;
