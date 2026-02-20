@@ -723,6 +723,10 @@
                 <div class="label">High Value Leads</div>
                 <div class="value" id="highValueLeads">0</div>
             </div>
+            <div class="stat-card">
+                <div class="label">Avg Time Between</div>
+                <div class="value" id="avgTimeBetween" style="font-size: 20px;">0h</div>
+            </div>
         </div>
 
         <!-- Charts -->
@@ -809,6 +813,16 @@
                 <h2>⏰ Peak Submission Hours</h2>
                 <div id="peakHoursTable"></div>
             </div>
+            
+            <div class="chart-card">
+                <h2>🎯 Form Conversion Funnel</h2>
+                <div id="conversionFunnelTable"></div>
+            </div>
+            
+            <div class="chart-card">
+                <h2>📊 Submissions by Day of Week</h2>
+                <canvas id="dayOfWeekChart"></canvas>
+            </div>
         </div>
 
         <!-- Recent Submissions Table - AT THE BOTTOM -->
@@ -872,9 +886,12 @@
         function updateTable() {
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
-            paginatedData = filteredData.slice(startIndex, endIndex);
             
-            updateRecentTable(paginatedData.slice().reverse());
+            // Reverse filteredData so newest is first
+            const reversedData = [...filteredData].reverse();
+            paginatedData = reversedData.slice(startIndex, endIndex);
+            
+            updateRecentTable(paginatedData);
             
             const totalPages = Math.ceil(filteredData.length / itemsPerPage);
             document.getElementById('currentPage').textContent = currentPage;
@@ -1089,6 +1106,18 @@
                 return domain !== 'gmail.com' && domain !== 'yahoo.com' && domain !== 'hotmail.com' && domain !== 'outlook.com' && domain !== 'unknown';
             }).length;
             const highValueLeads = rows.filter(r => getLeadQuality(r.orderspermonth) === 'high').length;
+            
+            // Calculate average time between submissions (in hours)
+            let avgTimeBetween = 0;
+            if (rows.length > 1) {
+                const sortedRows = [...rows].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                let totalGap = 0;
+                for (let i = 1; i < sortedRows.length; i++) {
+                    const gap = new Date(sortedRows[i].createdAt) - new Date(sortedRows[i-1].createdAt);
+                    totalGap += gap;
+                }
+                avgTimeBetween = (totalGap / (sortedRows.length - 1) / (1000 * 60 * 60)).toFixed(1); // Convert to hours
+            }
 
             // Update stat cards
             document.getElementById('totalSubmissions').textContent = totalSubmissions;
@@ -1099,6 +1128,7 @@
             document.getElementById('gmailUsers').textContent = gmailUsers;
             document.getElementById('corporateEmails').textContent = corporateEmails;
             document.getElementById('highValueLeads').textContent = highValueLeads;
+            document.getElementById('avgTimeBetween').textContent = avgTimeBetween + 'h';
 
             // Week comparison
             document.getElementById('thisWeekValue').textContent = thisWeek;
@@ -1592,6 +1622,52 @@
                 </table>`;
             
             document.getElementById('peakHoursTable').innerHTML = peakHoursHtml;
+            
+            // Conversion funnel (form type → lead quality)
+            const funnelData = {
+                'Download Guide → High': rows.filter(r => r.form === 'contactus-downloadguide' && getLeadQuality(r.orderspermonth) === 'high').length,
+                'Download Guide → Medium': rows.filter(r => r.form === 'contactus-downloadguide' && getLeadQuality(r.orderspermonth) === 'medium').length,
+                'Download Guide → Low': rows.filter(r => r.form === 'contactus-downloadguide' && getLeadQuality(r.orderspermonth) === 'low').length,
+                'Quotation → High': rows.filter(r => r.form === 'contactus-quotation' && getLeadQuality(r.orderspermonth) === 'high').length,
+                'Quotation → Medium': rows.filter(r => r.form === 'contactus-quotation' && getLeadQuality(r.orderspermonth) === 'medium').length,
+                'Quotation → Low': rows.filter(r => r.form === 'contactus-quotation' && getLeadQuality(r.orderspermonth) === 'low').length,
+            };
+            
+            const funnelHtml = `
+                <table style="width: 100%; font-size: 11px;">
+                    <tr><th style="text-align: left; padding: 6px; font-size: 10px;">Path</th><th style="text-align: right; padding: 6px; font-size: 10px;">Count</th></tr>
+                    ${Object.entries(funnelData)
+                        .filter(([, count]) => count > 0)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([path, count]) => 
+                            `<tr><td style="padding: 6px;">${path}</td><td style="text-align: right; padding: 6px;"><strong>${count}</strong></td></tr>`
+                        ).join('')}
+                </table>`;
+            
+            document.getElementById('conversionFunnelTable').innerHTML = funnelHtml || '<p style="color: #666; padding: 10px; font-size: 12px;">Not enough data</p>';
+            
+            // Submissions by day of week
+            const dayOfWeekCounts = Array(7).fill(0);
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            rows.forEach(r => {
+                const date = new Date(r.createdAt);
+                if (!isNaN(date)) {
+                    dayOfWeekCounts[date.getDay()]++;
+                }
+            });
+            
+            createOrUpdateChart('dayOfWeekChart', 'bar', {
+                labels: dayNames,
+                datasets: [{
+                    label: 'Submissions',
+                    data: dayOfWeekCounts,
+                    backgroundColor: dayOfWeekCounts.map((_, i) => 
+                        i === 0 || i === 6 ? '#ff9800' : '#6c65f7'  // Weekend vs Weekday
+                    ),
+                    borderWidth: 1
+                }]
+            });
         }
 
         function exportToCSV() {
