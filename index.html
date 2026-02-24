@@ -768,6 +768,67 @@
             color: #558b2f;
             font-size: 14px;
         }
+        
+        .spam-section {
+            background: #fff;
+            border-radius: 8px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-top: 3px solid #f44336;
+        }
+        
+        .spam-header {
+            padding: 18px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        
+        .spam-header:hover {
+            background: #ffeef0;
+        }
+        
+        .spam-header h2 {
+            color: #c62828;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .spam-subtitle {
+            color: #999;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        
+        .spam-toggle {
+            display: inline-block;
+            transition: transform 0.2s;
+            color: #f44336;
+            font-size: 12px;
+        }
+        
+        .spam-toggle.expanded {
+            transform: rotate(90deg);
+        }
+        
+        .spam-content {
+            padding: 0 18px 18px 18px;
+        }
+        
+        .spam-content table {
+            width: 100%;
+        }
+        
+        .spam-content th {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .spam-content tr:hover {
+            background: #fff5f5;
+        }
     </style>
 </head>
 <body>
@@ -1049,6 +1110,32 @@
             </table>
         </div>
 
+        <!-- Spam Section - Expandable -->
+        <div class="spam-section" id="spamSection" style="display: none;">
+            <div class="spam-header" onclick="toggleSpamSection()">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="spam-toggle" id="spamToggle">▶</span>
+                    <h2>🚫 Spam Detected (<span id="spamCount">0</span> submissions)</h2>
+                </div>
+                <div class="spam-subtitle">Users who submitted footer-contact_us_form multiple times</div>
+            </div>
+            <div class="spam-content" id="spamContent" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Domain</th>
+                            <th>Total Submissions</th>
+                            <th>Legacy Form Count</th>
+                            <th>Last Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody id="spamTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="powered-by">
             <p>Powered by <a href="https://quiqup.com" target="_blank">Quiqup</a> | Built with n8n</p>
@@ -1061,9 +1148,39 @@
         let config = { webhookUrl: '' };
         let allData = [];
         let filteredData = [];
+        let spamData = [];
         let currentPage = 1;
         let itemsPerPage = 15;
         let paginatedData = [];
+
+        function detectSpam(rows) {
+            const emailSubmissions = {};
+            
+            // Group submissions by email
+            rows.forEach(row => {
+                if (!emailSubmissions[row.Email]) {
+                    emailSubmissions[row.Email] = [];
+                }
+                emailSubmissions[row.Email].push(row);
+            });
+            
+            const spam = [];
+            const legitimate = [];
+            
+            // Check each email for spam behavior
+            Object.entries(emailSubmissions).forEach(([email, submissions]) => {
+                const legacyFormCount = submissions.filter(s => s.form === 'footer-contact_us_form').length;
+                
+                // Spam criteria: submitted footer-contact_us_form more than once
+                if (legacyFormCount > 1) {
+                    spam.push(...submissions); // All submissions from this email are spam
+                } else {
+                    legitimate.push(...submissions);
+                }
+            });
+            
+            return { spam, legitimate };
+        }
 
         function previousPage() {
             if (currentPage > 1) {
@@ -1161,11 +1278,14 @@
                     throw new Error('No data returned from webhook');
                 }
                 
-                allData = rows;
-                filteredData = rows;
+                // Detect and separate spam
+                const { spam, legitimate } = detectSpam(rows);
+                spamData = spam;
+                allData = legitimate;
+                filteredData = legitimate;
                 
-                populateFilterOptions(rows);
-                processData(rows);
+                populateFilterOptions(legitimate);
+                processData(legitimate);
                 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('alertsWidget').style.display = 'block';
@@ -1177,6 +1297,7 @@
                 document.getElementById('formComparisonSection').style.display = 'grid';
                 document.getElementById('additionalAnalytics').style.display = 'grid';
                 document.getElementById('tableCard').style.display = 'block';
+                document.getElementById('spamSection').style.display = spamData.length > 0 ? 'block' : 'none';
                 document.getElementById('webhookStatus').className = 'webhook-status online';
                 document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
             } catch (error) {
@@ -1533,6 +1654,64 @@
             
             // Additional analytics
             createAdditionalAnalytics(rows);
+            
+            // Update spam table
+            updateSpamTable();
+        }
+
+        function toggleSpamSection() {
+            const content = document.getElementById('spamContent');
+            const toggle = document.getElementById('spamToggle');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.classList.add('expanded');
+            } else {
+                content.style.display = 'none';
+                toggle.classList.remove('expanded');
+            }
+        }
+
+        function updateSpamTable() {
+            if (spamData.length === 0) {
+                return;
+            }
+            
+            // Group spam by email
+            const spamByEmail = {};
+            spamData.forEach(row => {
+                if (!spamByEmail[row.Email]) {
+                    spamByEmail[row.Email] = {
+                        email: row.Email,
+                        submissions: [],
+                        legacyCount: 0,
+                        lastSubmitted: new Date(row.createdAt)
+                    };
+                }
+                spamByEmail[row.Email].submissions.push(row);
+                if (row.form === 'footer-contact_us_form') {
+                    spamByEmail[row.Email].legacyCount++;
+                }
+                const date = new Date(row.createdAt);
+                if (date > spamByEmail[row.Email].lastSubmitted) {
+                    spamByEmail[row.Email].lastSubmitted = date;
+                }
+            });
+            
+            const spamUsers = Object.values(spamByEmail).sort((a, b) => b.submissions.length - a.submissions.length);
+            
+            document.getElementById('spamCount').textContent = spamData.length;
+            document.getElementById('spamTable').innerHTML = spamUsers.map(user => {
+                return `
+                    <tr>
+                        <td>${user.email}</td>
+                        <td>${getDomain(user.email)}</td>
+                        <td><strong>${user.submissions.length}</strong></td>
+                        <td><strong style="color: #f44336;">${user.legacyCount}×</strong></td>
+                        <td>${user.lastSubmitted.toLocaleString()}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function createHourlyData(rows, since) {
