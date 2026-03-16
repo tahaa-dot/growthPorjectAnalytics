@@ -184,9 +184,24 @@ body {
 
 /* Brand */
 .sidebar-brand {
-    padding: 22px 18px 16px;
-    border-bottom: 1px solid var(--sb-border);
+    padding: 22px 18px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
     flex-shrink: 0;
+    position: relative;
+    background: linear-gradient(150deg, #251a52 0%, #1d1347 50%, #160e38 100%);
+    overflow: hidden;
+}
+
+/* Radial purple glow — soft spotlight behind the logo */
+.sidebar-brand::before {
+    content: '';
+    position: absolute;
+    top: -24px;
+    left: -16px;
+    width: 200px;
+    height: 140px;
+    background: radial-gradient(ellipse at 38% 38%, rgba(124,58,237,0.22) 0%, transparent 68%);
+    pointer-events: none;
 }
 
 .sidebar-logo {
@@ -194,8 +209,10 @@ body {
     height: auto;
     display: block;
     margin-bottom: 10px;
-    opacity: 0.93;
-    filter: brightness(1.05);
+    opacity: 1;
+    position: relative;
+    z-index: 1;
+    filter: brightness(1.08) drop-shadow(0 0 10px rgba(255,255,255,0.16));
 }
 
 .sidebar-tagline {
@@ -203,8 +220,10 @@ body {
     font-size: 8px;
     font-weight: 700;
     letter-spacing: 3px;
-    color: var(--sb-label);
+    color: rgba(255,255,255,0.28);
     text-transform: uppercase;
+    position: relative;
+    z-index: 1;
 }
 
 /* Nav */
