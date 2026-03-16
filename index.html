@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiqup Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- ═══ SIDEBAR ══════════════════════════════════════════ -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <img src="https://cdn.prod.website-files.com/659d50aa6b5dee07e990053a/659e462164d15ff126e9b6cb_Quiqup_Master_Logos_RGB_Horizontal_Ghost%20(3)-p-500.png"
+                 alt="Quiqup" class="sidebar-logo" />
+            <div class="sidebar-tagline">Growth Analytics</div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Dashboard</div>
+
+            <button class="nav-item active" data-section="overview" onclick="showSection('overview')">
+                <span class="nav-icon">⊞</span>
+                <span class="nav-label">Overview</span>
+            </button>
+            <button class="nav-item" data-section="analytics" onclick="showSection('analytics')">
+                <span class="nav-icon">◈</span>
+                <span class="nav-label">Analytics</span>
+            </button>
+            <button class="nav-item" data-section="forms" onclick="showSection('forms')">
+                <span class="nav-icon">◻</span>
+                <span class="nav-label">Forms</span>
+            </button>
+            <button class="nav-item" data-section="deepdive" onclick="showSection('deepdive')">
+                <span class="nav-icon">⬡</span>
+                <span class="nav-label">Deep Dive</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:8px;">Pipeline</div>
+
+            <button class="nav-item" data-section="leads" onclick="showSection('leads')">
+                <span class="nav-icon">≡</span>
+                <span class="nav-label">Leads</span>
+                <span class="nav-badge" id="nbadge-leads"></span>
+            </button>
+            <button class="nav-item" data-section="alerts" onclick="showSection('alerts')">
+                <span class="nav-icon">◉</span>
+                <span class="nav-label">Alerts</span>
+                <span class="nav-badge alert" id="nbadge-alerts"></span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="sidebar-footer-btn" onclick="toggleDarkMode()" id="darkModeBtn">
+                <span>🌙</span><span>Dark mode</span>
+            </button>
+            <div class="sidebar-version">v1.0 · quiqup growth</div>
+        </div>
+    </aside>
+
+    <!-- ═══ MAIN AREA ═════════════════════════════════════════ -->
+    <div class="main-area">
+
+        <!-- TOP BAR -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <div>
+                    <div class="topbar-title" id="topbarTitle">Overview</div>
+                    <div class="topbar-subtitle" id="topbarSubtitle">Weekly performance and key metrics</div>
+                </div>
+                <div class="topbar-divider"></div>
+                <div class="topbar-status">
+                    <span class="webhook-status" id="webhookStatus"></span>
+                    <span class="live-label" id="liveLabel">LIVE</span>
+                    <span>Updated <span id="lastUpdated">Never</span></span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <select class="auto-refresh-select" id="autoRefreshSelect" onchange="setAutoRefresh()" title="Auto-refresh">
+                    <option value="0">⏱ Off</option>
+                    <option value="30">⏱ 30s</option>
+                    <option value="60">⏱ 1 min</option>
+                    <option value="300">⏱ 5 min</option>
+                    <option value="600">⏱ 10 min</option>
+                    <option value="1800">⏱ 30 min</option>
+                </select>
+                <button onclick="exportToCSV()" class="topbar-btn">↓ Export</button>
+                <button onclick="fetchData()" class="topbar-btn primary">↺ Refresh</button>
+                <button onclick="toggleDarkMode()" class="dark-mode-btn" id="darkModeBtnTop" title="Toggle theme">🌙</button>
+            </div>
+        </div>
+
+        <!-- SCROLLABLE CONTENT -->
+        <div class="content-scroll">
+
+            <!-- Webhook config banner -->
+            <div class="config-banner" id="configSection" style="display:none">
+                <h3>⚡ Connect your n8n webhook</h3>
+                <div class="config-input-row">
+                    <input type="text" id="webhookUrl" placeholder="https://your-n8n.com/webhook/analytics-data" />
+                    <button onclick="saveConfig()">Connect</button>
+                </div>
+            </div>
+            <div id="configSectionShow" style="display:none; padding:14px 26px 0;">
+                <button onclick="document.getElementById('configSection').style.display='block';this.parentElement.style.display='none';"
+                        class="topbar-btn" style="font-size:11px;">⚙ Change Webhook</button>
+            </div>
+
+            <div id="error" class="error" style="display:none; margin:14px 26px 0;"></div>
+            <div id="loading" class="loading">Configure webhook above to load data</div>
+
+            <!-- ══ OVERVIEW ═══════════════════════════════════ -->
+            <div class="page-section" id="section-overview">
+                <div class="page-header">
+                    <h1>Overview</h1>
+                    <p>Weekly performance and key metrics at a glance</p>
+                </div>
+
+                <!-- Filter bar -->
+                <div class="section-filter-bar">
+                    <div class="filter-presets">
+                        <button class="preset-pill" onclick="setDatePreset('today', this)">Today</button>
+                        <button class="preset-pill" onclick="setDatePreset('yesterday', this)">Yesterday</button>
+                        <button class="preset-pill" onclick="setDatePreset('7d', this)">7d</button>
+                        <button class="preset-pill" onclick="setDatePreset('30d', this)">30d</button>
+                        <button class="preset-pill" onclick="setDatePreset('month', this)">Month</button>
+                        <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
+                    </div>
+                    <div class="section-filter-divider"></div>
+                    <input class="section-search" type="text" id="overviewSearch" placeholder="Filter by email or domain…" />
+                    <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
+                    <button class="filter-clear-btn" onclick="clearFilters()">Clear</button>
+                </div>
+
+                <div class="comparison-section" id="comparisonSection" style="display:none;">
+                    <div class="comparison-card">
+                        <div class="period">This Week</div>
+                        <div class="value" id="thisWeekValue">0</div>
+                    </div>
+                    <div class="comparison-card">
+                        <div class="period">Last Week</div>
+                        <div class="value" id="lastWeekValue">0</div>
+                    </div>
+                    <div class="comparison-card">
+                        <div class="period">Change</div>
+                        <div class="value" id="weekChangeValue">
+                            <span class="change" id="weekChange">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="daily-metrics-section" id="dailyMetricsSection" style="display:none;">
+                    <h2 class="section-title">Daily Aggregate Metrics — Last 30 Days</h2>
+                    <div class="metrics-container">
+                        <div class="metric-block">
+                            <div class="metric-label">Avg Daily Submissions</div>
+                            <div class="metric-value" id="avgDaily">0</div>
+                            <div class="metric-sublabel">Active days only</div>
+                        </div>
+                        <div class="metric-block">
+                            <div class="metric-label">Peak Day</div>
+                            <div class="metric-value" id="peakDay" style="font-size:18px;">—</div>
+                            <div class="metric-sublabel" id="peakDayCount">0 submissions</div>
+                        </div>
+                        <div class="metric-block">
+                            <div class="metric-label">Days Active</div>
+                            <div class="metric-value" id="daysActive">0</div>
+                            <div class="metric-sublabel">Out of last 30</div>
+                        </div>
+                        <div class="metric-block">
+                            <div class="metric-label">Daily Trend</div>
+                            <div class="metric-value" id="dailyTrend">→</div>
+                            <div class="metric-sublabel" id="trendLabel">Stable</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-wrapper" id="statsWrapper" style="display:none;">
+                    <h2 class="section-title">Key Metrics</h2>
+
+                    <div class="stats-section">
+                        <div class="section-subtitle">Overview</div>
+                        <div class="stats-grid-primary">
+                            <div class="stat-card">
+                                <div class="label">Total Submissions</div>
+                                <div class="value" id="totalSubmissions">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Unique Submissions</div>
+                                <div class="value" id="uniqueSubmissions">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Last Hour</div>
+                                <div class="value" id="lastHour">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Today</div>
+                                <div class="value" id="today">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">This Week</div>
+                                <div class="value" id="thisWeek">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-section">
+                        <div class="section-subtitle">Lead Quality</div>
+                        <div class="stats-grid-secondary">
+                            <div class="stat-card">
+                                <div class="label">Unique Emails</div>
+                                <div class="value" id="uniqueEmails">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Gmail Users</div>
+                                <div class="value" id="gmailUsers">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Corporate Emails</div>
+                                <div class="value" id="corporateEmails">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">High Value Leads</div>
+                                <div class="value" id="highValueLeads">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Avg Time Between</div>
+                                <div class="value" id="avgTimeBetween" style="font-size:22px;">0h</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ ANALYTICS ══════════════════════════════════ -->
+            <div class="page-section" id="section-analytics" style="display:none;">
+                <div class="page-header">
+                    <h1>Analytics</h1>
+                    <p>Submission trends, patterns and distributions</p>
+                </div>
+
+                <!-- Filter bar -->
+                <div class="section-filter-bar">
+                    <div class="filter-presets">
+                        <button class="preset-pill" onclick="setDatePreset('today', this)">Today</button>
+                        <button class="preset-pill" onclick="setDatePreset('yesterday', this)">Yesterday</button>
+                        <button class="preset-pill" onclick="setDatePreset('7d', this)">7d</button>
+                        <button class="preset-pill" onclick="setDatePreset('30d', this)">30d</button>
+                        <button class="preset-pill" onclick="setDatePreset('month', this)">Month</button>
+                        <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
+                    </div>
+                    <div class="section-filter-divider"></div>
+                    <input class="section-search" type="text" id="analyticsSearch" placeholder="Filter by domain or form…" />
+                    <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
+                    <button class="filter-clear-btn" onclick="clearFilters()">Clear</button>
+                </div>
+
+                <div class="charts-grid" id="chartsGrid" style="display:none;">
+                    <div class="chart-card">
+                        <h2>Submissions Per Hour — Last 24h</h2>
+                        <canvas id="hourlyChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Submissions Per Day — Last 30 Days</h2>
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Email Domain Breakdown</h2>
+                        <canvas id="domainChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Lead Quality Distribution</h2>
+                        <canvas id="leadQualityChart"></canvas>
+                    </div>
+                    <div class="chart-card" style="grid-column:span 2;">
+                        <h2>Submission Heatmap — Day of Week × Hour</h2>
+                        <div class="heatmap-container" id="heatmapContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ FORMS ═══════════════════════════════════════ -->
+            <div class="page-section" id="section-forms" style="display:none;">
+                <div class="page-header">
+                    <h1>Forms</h1>
+                    <p>Form performance comparison and conversion analysis</p>
+                </div>
+
+                <!-- Filter bar -->
+                <div class="section-filter-bar">
+                    <div class="filter-presets">
+                        <button class="preset-pill" onclick="setDatePreset('today', this)">Today</button>
+                        <button class="preset-pill" onclick="setDatePreset('yesterday', this)">Yesterday</button>
+                        <button class="preset-pill" onclick="setDatePreset('7d', this)">7d</button>
+                        <button class="preset-pill" onclick="setDatePreset('30d', this)">30d</button>
+                        <button class="preset-pill" onclick="setDatePreset('month', this)">Month</button>
+                        <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
+                    </div>
+                    <div class="section-filter-divider"></div>
+                    <input class="section-search" type="text" id="formsSearch" placeholder="Filter by form name…" />
+                    <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
+                    <button class="filter-clear-btn" onclick="clearFilters()">Clear</button>
+                </div>
+
+                <div class="charts-grid" id="formComparisonSection" style="display:none;">
+                    <div class="chart-card" style="grid-column:span 2;">
+                        <h2>Form Performance Comparison</h2>
+                        <div class="form-comparison-grid">
+                            <div class="form-comparison-card">
+                                <div class="form-comparison-title">New Forms Only</div>
+                                <div class="form-comparison-value" id="newFormsOnlyCount">0</div>
+                                <div class="form-comparison-subtitle">Unique emails (no legacy form)</div>
+                            </div>
+                            <div class="form-comparison-card highlight">
+                                <div class="form-comparison-title">High Value (New Forms)</div>
+                                <div class="form-comparison-value" id="newFormsHighValue" style="color:#059669;">0</div>
+                                <div class="form-comparison-subtitle">500+ orders/month</div>
+                            </div>
+                            <div class="form-comparison-card highlight">
+                                <div class="form-comparison-title">Medium Value (New Forms)</div>
+                                <div class="form-comparison-value" id="newFormsMediumValue" style="color:#d97706;">0</div>
+                                <div class="form-comparison-subtitle">151–500 orders/month</div>
+                            </div>
+                            <div class="form-comparison-card">
+                                <div class="form-comparison-title">Total New Forms</div>
+                                <div class="form-comparison-value" id="newFormsCount">0</div>
+                                <div class="form-comparison-subtitle">All submissions</div>
+                            </div>
+                            <div class="form-comparison-card">
+                                <div class="form-comparison-title">Legacy Form</div>
+                                <div class="form-comparison-value" id="legacyFormCount">0</div>
+                                <div class="form-comparison-subtitle">footer-contact_us_form</div>
+                            </div>
+                            <div class="form-comparison-card">
+                                <div class="form-comparison-title">Conversion Rate</div>
+                                <div class="form-comparison-value" id="conversionRate">0%</div>
+                                <div class="form-comparison-subtitle">New forms vs Total</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h2>Form Distribution Over Time</h2>
+                        <canvas id="formTimelineChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Form Type Breakdown</h2>
+                        <canvas id="formTypeChart"></canvas>
+                    </div>
+
+                    <div class="chart-card" style="grid-column:span 2;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <h2 style="margin:0;">Multi-Form Submissions</h2>
+                            <div class="pagination-controls" id="multiFormPagination" style="display:none;">
+                                <button class="pagination-btn" onclick="previousMultiFormPage()" id="multiFormPrevBtn">← Prev</button>
+                                <span style="margin:0 10px; color:var(--text-muted); font-size:11px; font-family:'JetBrains Mono',monospace;">
+                                    Page <span id="multiFormCurrentPage">1</span> / <span id="multiFormTotalPages">1</span>
+                                </span>
+                                <button class="pagination-btn" onclick="nextMultiFormPage()" id="multiFormNextBtn">Next →</button>
+                            </div>
+                        </div>
+                        <div id="multiFormTable"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ DEEP DIVE ══════════════════════════════════ -->
+            <div class="page-section" id="section-deepdive" style="display:none;">
+                <div class="page-header">
+                    <h1>Deep Dive</h1>
+                    <p>Corporate domains, velocity, growth rate and timing patterns</p>
+                </div>
+
+                <!-- Filter bar -->
+                <div class="section-filter-bar">
+                    <div class="filter-presets">
+                        <button class="preset-pill" onclick="setDatePreset('today', this)">Today</button>
+                        <button class="preset-pill" onclick="setDatePreset('yesterday', this)">Yesterday</button>
+                        <button class="preset-pill" onclick="setDatePreset('7d', this)">7d</button>
+                        <button class="preset-pill" onclick="setDatePreset('30d', this)">30d</button>
+                        <button class="preset-pill" onclick="setDatePreset('month', this)">Month</button>
+                        <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
+                    </div>
+                    <div class="section-filter-divider"></div>
+                    <input class="section-search" type="text" id="deepdiveSearch" placeholder="Filter by domain or metric…" />
+                    <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
+                    <button class="filter-clear-btn" onclick="clearFilters()">Clear</button>
+                </div>
+
+                <div class="charts-grid" id="additionalAnalytics" style="display:none;">
+                    <div class="chart-card">
+                        <h2>Top Corporate Domains</h2>
+                        <div id="topDomainsTable"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Lead Velocity — Last 7 Days</h2>
+                        <canvas id="leadVelocityChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Daily Growth Rate</h2>
+                        <canvas id="growthRateChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Peak Submission Hours</h2>
+                        <div id="peakHoursTable"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Form Conversion Funnel</h2>
+                        <div id="conversionFunnelTable"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h2>Submissions by Day of Week</h2>
+                        <canvas id="dayOfWeekChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ LEADS ══════════════════════════════════════ -->
+            <div class="page-section" id="section-leads" style="display:none;">
+                <div class="page-header">
+                    <h1>Leads</h1>
+                    <p>All submissions with filters, status tracking and notes</p>
+                </div>
+
+                <div class="filter-section" id="filterSection" style="display:none;">
+                    <h3>Filters &amp; Search</h3>
+                    <div class="date-presets">
+                        <span class="date-presets-label">Quick:</span>
+                        <button class="preset-pill" onclick="setDatePreset('today', this)">Today</button>
+                        <button class="preset-pill" onclick="setDatePreset('yesterday', this)">Yesterday</button>
+                        <button class="preset-pill" onclick="setDatePreset('7d', this)">Last 7d</button>
+                        <button class="preset-pill" onclick="setDatePreset('30d', this)">Last 30d</button>
+                        <button class="preset-pill" onclick="setDatePreset('month', this)">This Month</button>
+                        <button class="preset-pill" onclick="setDatePreset('all', this)">All Time</button>
+                    </div>
+                    <div class="filter-controls">
+                        <div class="filter-control">
+                            <label>Date From</label>
+                            <input type="date" id="filterDateFrom" />
+                        </div>
+                        <div class="filter-control">
+                            <label>Date To</label>
+                            <input type="date" id="filterDateTo" />
+                        </div>
+                        <div class="filter-control">
+                            <label>Form Type</label>
+                            <select id="filterForm">
+                                <option value="">All Forms</option>
+                            </select>
+                        </div>
+                        <div class="filter-control">
+                            <label>Service Offering</label>
+                            <select id="filterService">
+                                <option value="">All Services</option>
+                            </select>
+                        </div>
+                        <div class="filter-control">
+                            <label>Search Email</label>
+                            <input type="text" id="filterEmail" placeholder="email@example.com" />
+                        </div>
+                        <div class="filter-control">
+                            <label>Orders/Month</label>
+                            <select id="filterOrders">
+                                <option value="">All Volumes</option>
+                            </select>
+                        </div>
+                        <div class="filter-control">
+                            <label>Lead Status</label>
+                            <select id="filterStatus">
+                                <option value="">All Statuses</option>
+                                <option value="new">New</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="qualified">Qualified</option>
+                                <option value="won">Won</option>
+                                <option value="lost">Lost</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="apply-filter-btn" onclick="applyFilters()">Apply Filters</button>
+                        <button class="clear-filter-btn" onclick="clearFilters()">Clear All</button>
+                    </div>
+                </div>
+
+                <div class="table-card" id="tableCard" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                        <h2>Recent Submissions &nbsp;<span style="font-weight:400;color:var(--text-muted);font-size:12px;">(<span id="tableCount">0</span> results)</span></h2>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" onclick="previousPage()" id="prevBtn">← Prev</button>
+                            <span style="margin:0 10px; color:var(--text-muted); font-size:11px; font-family:'JetBrains Mono',monospace;">
+                                <span id="currentPage">1</span> / <span id="totalPages">1</span>
+                            </span>
+                            <button class="pagination-btn" onclick="nextPage()" id="nextBtn">Next →</button>
+                        </div>
+                    </div>
+                    <input type="text" id="tableSearch" placeholder="Search table…" onkeyup="filterTable()" />
+                    <table>
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('createdAt')" style="cursor:pointer;">Time <span id="sort-createdAt">↕</span></th>
+                                <th onclick="sortTable('Email')" style="cursor:pointer;">Email <span id="sort-Email">↕</span></th>
+                                <th>Domain</th>
+                                <th>Phone</th>
+                                <th onclick="sortTable('form')" style="cursor:pointer;">Form <span id="sort-form">↕</span></th>
+                                <th>Service</th>
+                                <th>Orders/Mo</th>
+                                <th>Quality</th>
+                                <th style="text-align:center;"># Sub</th>
+                                <th>Status</th>
+                                <th style="text-align:center;">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentSubmissionsTable"></tbody>
+                    </table>
+                </div>
+
+                <div class="spam-section" id="spamSection" style="display:none;">
+                    <div class="spam-header" onclick="toggleSpamSection()">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="spam-toggle" id="spamToggle">▶</span>
+                            <h2>Spam Detected &nbsp;<span style="font-weight:400;">(<span id="spamCount">0</span> submissions)</span></h2>
+                        </div>
+                        <div class="spam-subtitle">Users who submitted footer-contact_us_form multiple times</div>
+                    </div>
+                    <div class="spam-content" id="spamContent" style="display:none;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Domain</th>
+                                    <th>Total Submissions</th>
+                                    <th>Legacy Count</th>
+                                    <th>Last Submitted</th>
+                                </tr>
+                            </thead>
+                            <tbody id="spamTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ ALERTS ══════════════════════════════════════ -->
+            <div class="page-section" id="section-alerts" style="display:none;">
+                <div class="page-header">
+                    <h1>Alerts</h1>
+                    <p>Smart alerts and hot leads requiring immediate action</p>
+                </div>
+
+                <!-- Filter bar -->
+                <div class="section-filter-bar">
+                    <div class="filter-presets">
+                        <button class="preset-pill" onclick="setDatePreset('today', this)">Today</button>
+                        <button class="preset-pill" onclick="setDatePreset('yesterday', this)">Yesterday</button>
+                        <button class="preset-pill" onclick="setDatePreset('7d', this)">7d</button>
+                        <button class="preset-pill" onclick="setDatePreset('30d', this)">30d</button>
+                        <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
+                    </div>
+                    <div class="section-filter-divider"></div>
+                    <input class="section-search" type="text" id="alertsSearch" placeholder="Filter alerts or leads…" />
+                    <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
+                    <button class="filter-clear-btn" onclick="clearFilters()">Clear</button>
+                </div>
+
+                <div class="alerts-widget" id="alertsWidget" style="display:none;">
+                    <div class="alert-header" onclick="toggleAlertsSection()">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="section-toggle" id="alertsToggle">▼</span>
+                            <span>Smart Alerts</span>
+                            <span class="alert-count" id="alertCount">0</span>
+                        </div>
+                    </div>
+                    <div id="alertsList" class="collapsible-content"></div>
+                </div>
+
+                <div class="hot-leads-section" id="hotLeadsSection" style="display:none;">
+                    <div class="hot-leads-header" onclick="toggleHotLeadsSection()">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="section-toggle" id="hotLeadsToggle">▼</span>
+                            <h2>Hot Leads — Action Required</h2>
+                        </div>
+                        <div class="hot-leads-subtitle">High-value leads from the last 24 hours that need immediate follow-up</div>
+                    </div>
+                    <div id="hotLeadsList" class="collapsible-content"></div>
+                </div>
+            </div>
+
+            <!-- Notes Modal -->
+            <div class="modal-overlay" id="notesModal" onclick="handleModalOverlayClick(event)">
+                <div class="modal-box">
+                    <span class="modal-tag">Lead Notes</span>
+                    <div class="modal-title">Add a note</div>
+                    <div class="modal-email" id="notesModalEmail"></div>
+                    <textarea class="modal-textarea" id="notesModalText"
+                        placeholder="e.g. Called Monday — interested in 500+ plan. Follow up Thursday..."></textarea>
+                    <div class="modal-actions">
+                        <button class="modal-cancel-btn" onclick="closeNotesModal()">Cancel</button>
+                        <button class="modal-save-btn" onclick="saveNote()">Save Note</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="powered-by">
+                Quiqup Growth Analytics &middot; Powered by n8n
+            </div>
+
+        </div><!-- /content-scroll -->
+    </div><!-- /main-area -->
+
+    <script src="app.js"></script>
+</body>
+</html>
