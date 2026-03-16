@@ -380,7 +380,7 @@ function applyFilters() {
     const service = document.getElementById('filterService').value;
     const email = document.getElementById('filterEmail').value.toLowerCase();
     const orders = document.getElementById('filterOrders').value;
-    const statusFilter = document.getElementById('filterStatus').value;
+    const qualityFilter = document.getElementById('filterQuality').value;
 
     filteredData = allData.filter(row => {
         const rowDate = new Date(row.createdAt);
@@ -390,10 +390,7 @@ function applyFilters() {
         if (service && row.service_offering !== service) return false;
         if (email && !row.Email?.toLowerCase().includes(email)) return false;
         if (orders && row.orderspermonth !== orders) return false;
-        if (statusFilter) {
-            const rowStatus = leadStatuses[row.Email] || 'new';
-            if (rowStatus !== statusFilter) return false;
-        }
+        if (qualityFilter && getLeadQuality(row.orderspermonth) !== qualityFilter) return false;
         return true;
     });
 
@@ -408,7 +405,7 @@ function clearFilters() {
     document.getElementById('filterService').value = '';
     document.getElementById('filterEmail').value = '';
     document.getElementById('filterOrders').value = '';
-    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterQuality').value = '';
     document.querySelectorAll('.preset-pill').forEach(b => b.classList.remove('active'));
     activeDatePreset = null;
     filteredData = allData;
@@ -904,7 +901,6 @@ function updateRecentTable(recentRows) {
         const qualityLabel = quality === 'high' ? 'High' : quality === 'medium' ? 'Medium' : 'Low';
         const submissionCount = emailCounts[row.Email] || 1;
         const phoneNumber = row.PhoneNumber || row.phonenumber || row.phone_number || row.phone || '—';
-        const status = leadStatuses[row.Email] || 'new';
         const hasNote = !!leadNotes[row.Email];
         const noteTitle = hasNote ? leadNotes[row.Email].replace(/'/g, '&#39;').substring(0, 80) + (leadNotes[row.Email].length > 80 ? '…' : '') : 'Add note';
         const emailEsc = row.Email.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
@@ -920,16 +916,6 @@ function updateRecentTable(recentRows) {
                 <td>${row.orderspermonth || '—'}</td>
                 <td><span class="lead-quality-badge ${qualityClass}">${qualityLabel}</span></td>
                 <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;">${submissionCount}×</td>
-                <td>
-                    <select class="status-select status-${status}" data-email="${emailEsc}"
-                            onchange="setLeadStatus('${emailEsc}', this.value); applyStatusColor(this)">
-                        <option value="new"       ${status==='new'       ?'selected':''}>New</option>
-                        <option value="contacted" ${status==='contacted' ?'selected':''}>Contacted</option>
-                        <option value="qualified" ${status==='qualified' ?'selected':''}>Qualified</option>
-                        <option value="won"       ${status==='won'       ?'selected':''}>Won</option>
-                        <option value="lost"      ${status==='lost'      ?'selected':''}>Lost</option>
-                    </select>
-                </td>
                 <td style="text-align:center;">
                     <button class="notes-btn ${hasNote ? 'has-note' : ''}"
                             onclick="openNotesModal('${emailEsc}')"
@@ -1223,8 +1209,7 @@ function createAdditionalAnalytics(rows) {
 /* ─── CSV export ─────────────────────────────────────────── */
 function exportToCSV() {
     if (filteredData.length === 0) { showError('No data to export'); return; }
-    const headers = ['Created At','Email','Domain','Form','Service Offering','Orders Per Month','Lead Quality','Status','Notes'];
-    const statusLabels = { new:'New', contacted:'Contacted', qualified:'Qualified', won:'Won', lost:'Lost' };
+    const headers = ['Created At','Email','Domain','Form','Service Offering','Orders Per Month','Lead Quality','Notes'];
     const csvRows = filteredData.map(row => {
         const date = new Date(row.createdAt);
         return [
@@ -1235,7 +1220,6 @@ function exportToCSV() {
             row.service_offering || '',
             row.orderspermonth || '',
             getLeadQuality(row.orderspermonth),
-            statusLabels[leadStatuses[row.Email] || 'new'] || 'New',
             leadNotes[row.Email] || ''
         ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(',');
     });

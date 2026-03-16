@@ -469,14 +469,12 @@
                             </select>
                         </div>
                         <div class="filter-control">
-                            <label>Lead Status</label>
-                            <select id="filterStatus">
-                                <option value="">All Statuses</option>
-                                <option value="new">New</option>
-                                <option value="contacted">Contacted</option>
-                                <option value="qualified">Qualified</option>
-                                <option value="won">Won</option>
-                                <option value="lost">Lost</option>
+                            <label>Lead Quality</label>
+                            <select id="filterQuality">
+                                <option value="">All Quality</option>
+                                <option value="high">High (500+/mo)</option>
+                                <option value="medium">Medium (151–500)</option>
+                                <option value="low">Low (&lt;151)</option>
                             </select>
                         </div>
                     </div>
@@ -510,7 +508,6 @@
                                 <th>Orders/Mo</th>
                                 <th>Quality</th>
                                 <th style="text-align:center;"># Sub</th>
-                                <th>Status</th>
                                 <th style="text-align:center;">Notes</th>
                             </tr>
                         </thead>

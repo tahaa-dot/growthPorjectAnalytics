@@ -1308,7 +1308,7 @@ body {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 18px 20px;
+    padding: 14px 16px;
     margin-bottom: 14px;
     box-shadow: var(--shadow-sm);
     overflow: hidden;
@@ -1346,14 +1346,14 @@ body {
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 thead th {
-    padding: 8px 12px;
+    padding: 6px 10px;
     text-align: left;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.8px;
     text-transform: uppercase;
@@ -1375,9 +1375,10 @@ tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: var(--surface-2); }
 
 tbody td {
-    padding: 9px 12px;
+    padding: 6px 10px;
     color: var(--text-primary);
     vertical-align: middle;
+    font-size: 11px;
 }
 
 /* Mono cells for email/time data */
@@ -1385,7 +1386,7 @@ td.mono,
 tbody td:nth-child(1),
 tbody td:nth-child(2) {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 [id^="sort-"] {
