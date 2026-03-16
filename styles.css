@@ -749,6 +749,32 @@ body {
     margin: 0 2px;
 }
 
+.filter-bar-date {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    outline: none;
+    width: 128px;
+    flex-shrink: 0;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.filter-bar-date:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.filter-bar-date-sep {
+    font-size: 10px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    padding: 0 1px;
+}
+
 /* ─────────────────────────────────────────────────────────────────
    SECTION LABELS
 ───────────────────────────────────────────────────────────────── */

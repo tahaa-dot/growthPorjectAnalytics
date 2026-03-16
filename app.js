@@ -149,6 +149,11 @@ function setDatePreset(preset, btn) {
 
     document.getElementById('filterDateFrom').value = from;
     document.getElementById('filterDateTo').value = to;
+    // Mirror to current section's inline date inputs
+    const sFrom = document.getElementById(currentSection + 'DateFrom');
+    const sTo   = document.getElementById(currentSection + 'DateTo');
+    if (sFrom) sFrom.value = from;
+    if (sTo)   sTo.value   = to;
     applyFilters();
 }
 
@@ -374,8 +379,11 @@ function populateFilterOptions(rows) {
 
 /* ─── Filters ────────────────────────────────────────────── */
 function applyFilters() {
-    const dateFrom = document.getElementById('filterDateFrom').value;
-    const dateTo = document.getElementById('filterDateTo').value;
+    // Read dates from current section's inline inputs, fall back to leads panel inputs
+    const fromEl = document.getElementById(currentSection + 'DateFrom') || document.getElementById('filterDateFrom');
+    const toEl   = document.getElementById(currentSection + 'DateTo')   || document.getElementById('filterDateTo');
+    const dateFrom = fromEl ? fromEl.value : '';
+    const dateTo   = toEl   ? toEl.value   : '';
     const form = document.getElementById('filterForm').value;
     const service = document.getElementById('filterService').value;
     const email = document.getElementById('filterEmail').value.toLowerCase();
@@ -399,6 +407,13 @@ function applyFilters() {
 }
 
 function clearFilters() {
+    // Clear all section date inputs
+    ['overview','analytics','forms','deepdive','alerts'].forEach(s => {
+        const f = document.getElementById(s + 'DateFrom');
+        const t = document.getElementById(s + 'DateTo');
+        if (f) f.value = '';
+        if (t) t.value = '';
+    });
     document.getElementById('filterDateFrom').value = '';
     document.getElementById('filterDateTo').value = '';
     document.getElementById('filterForm').value = '';

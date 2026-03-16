@@ -131,6 +131,10 @@
                         <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
                     </div>
                     <div class="section-filter-divider"></div>
+                    <input class="filter-bar-date" type="date" id="overviewDateFrom" title="From" />
+                    <span class="filter-bar-date-sep">→</span>
+                    <input class="filter-bar-date" type="date" id="overviewDateTo" title="To" />
+                    <div class="section-filter-divider"></div>
                     <input class="section-search" type="text" id="overviewSearch" placeholder="Filter by email or domain…" />
                     <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
                     <button class="filter-clear-btn" onclick="clearFilters()">Clear</button>
@@ -254,6 +258,10 @@
                         <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
                     </div>
                     <div class="section-filter-divider"></div>
+                    <input class="filter-bar-date" type="date" id="analyticsDateFrom" title="From" />
+                    <span class="filter-bar-date-sep">→</span>
+                    <input class="filter-bar-date" type="date" id="analyticsDateTo" title="To" />
+                    <div class="section-filter-divider"></div>
                     <input class="section-search" type="text" id="analyticsSearch" placeholder="Filter by domain or form…" />
                     <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
                     <button class="filter-clear-btn" onclick="clearFilters()">Clear</button>
@@ -300,6 +308,10 @@
                         <button class="preset-pill" onclick="setDatePreset('month', this)">Month</button>
                         <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
                     </div>
+                    <div class="section-filter-divider"></div>
+                    <input class="filter-bar-date" type="date" id="formsDateFrom" title="From" />
+                    <span class="filter-bar-date-sep">→</span>
+                    <input class="filter-bar-date" type="date" id="formsDateTo" title="To" />
                     <div class="section-filter-divider"></div>
                     <input class="section-search" type="text" id="formsSearch" placeholder="Filter by form name…" />
                     <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
@@ -385,6 +397,10 @@
                         <button class="preset-pill" onclick="setDatePreset('month', this)">Month</button>
                         <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
                     </div>
+                    <div class="section-filter-divider"></div>
+                    <input class="filter-bar-date" type="date" id="deepdiveDateFrom" title="From" />
+                    <span class="filter-bar-date-sep">→</span>
+                    <input class="filter-bar-date" type="date" id="deepdiveDateTo" title="To" />
                     <div class="section-filter-divider"></div>
                     <input class="section-search" type="text" id="deepdiveSearch" placeholder="Filter by domain or metric…" />
                     <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
@@ -556,6 +572,10 @@
                         <button class="preset-pill" onclick="setDatePreset('30d', this)">30d</button>
                         <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
                     </div>
+                    <div class="section-filter-divider"></div>
+                    <input class="filter-bar-date" type="date" id="alertsDateFrom" title="From" />
+                    <span class="filter-bar-date-sep">→</span>
+                    <input class="filter-bar-date" type="date" id="alertsDateTo" title="To" />
                     <div class="section-filter-divider"></div>
                     <input class="section-search" type="text" id="alertsSearch" placeholder="Filter alerts or leads…" />
                     <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
