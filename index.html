@@ -244,6 +244,32 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="stats-section">
+                        <div class="section-subtitle">SSUP Conversion</div>
+                        <div class="stats-grid-secondary">
+                            <div class="stat-card">
+                                <div class="label">SSUP</div>
+                                <div class="value" id="ssupCount" style="color:var(--success);">0</div>
+                                <div class="metric-sublabel">Created an account</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Not SSUP</div>
+                                <div class="value" id="noSsupCount" style="color:var(--text-muted);">0</div>
+                                <div class="metric-sublabel">Tracked, no account</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Tracked Leads</div>
+                                <div class="value" id="ssupTracked">0</div>
+                                <div class="metric-sublabel">Has SSUP status</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">Conversion Rate</div>
+                                <div class="value" id="ssupRate" style="color:var(--accent);">—</div>
+                                <div class="metric-sublabel">SSUP / tracked</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -506,6 +532,15 @@
                                 <option value="low">Low (&lt;151)</option>
                             </select>
                         </div>
+                        <div class="filter-control">
+                            <label>SSUP Status</label>
+                            <select id="filterSsup">
+                                <option value="">All</option>
+                                <option value="SSUP">SSUP ✓</option>
+                                <option value="No">Not SSUP</option>
+                                <option value="untracked">Not tracked</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="filter-actions">
                         <button class="apply-filter-btn" onclick="applyFilters()">Apply Filters</button>
@@ -536,6 +571,7 @@
                                 <th>Service</th>
                                 <th>Orders/Mo</th>
                                 <th>Quality</th>
+                                <th style="text-align:center;">SSUP</th>
                                 <th style="text-align:center;"># Sub</th>
                                 <th style="text-align:center;">Notes</th>
                             </tr>
@@ -664,6 +700,8 @@
                                         <th style="text-align:center;">Corporate</th>
                                         <th style="text-align:center;">New Forms</th>
                                         <th style="text-align:center;">Legacy</th>
+                                        <th style="text-align:center;">SSUP</th>
+                                        <th style="text-align:center;">Conv %</th>
                                         <th style="text-align:center;">vs Prev Week</th>
                                     </tr>
                                 </thead>

@@ -391,6 +391,7 @@ function applyFilters() {
     const email = document.getElementById('filterEmail').value.toLowerCase();
     const orders = document.getElementById('filterOrders').value;
     const qualityFilter = document.getElementById('filterQuality').value;
+    const ssupFilter    = document.getElementById('filterSsup').value;
 
     filteredData = allData.filter(row => {
         const rowDate = new Date(row.createdAt);
@@ -401,6 +402,9 @@ function applyFilters() {
         if (email && !row.Email?.toLowerCase().includes(email)) return false;
         if (orders && row.orderspermonth !== orders) return false;
         if (qualityFilter && getLeadQuality(row.orderspermonth) !== qualityFilter) return false;
+        if (ssupFilter === 'untracked' && (row.is_ssup === 'SSUP' || row.is_ssup === 'No')) return false;
+        if (ssupFilter === 'SSUP' && row.is_ssup !== 'SSUP') return false;
+        if (ssupFilter === 'No'   && row.is_ssup !== 'No')   return false;
         return true;
     });
 
@@ -423,6 +427,7 @@ function clearFilters() {
     document.getElementById('filterEmail').value = '';
     document.getElementById('filterOrders').value = '';
     document.getElementById('filterQuality').value = '';
+    document.getElementById('filterSsup').value = '';
     document.querySelectorAll('.preset-pill').forEach(b => b.classList.remove('active'));
     activeDatePreset = null;
     filteredData = allData;
@@ -680,6 +685,11 @@ function processData(rows) {
     }).length;
     const highValueLeads = rows.filter(r => getLeadQuality(r.orderspermonth) === 'high').length;
 
+    const ssupCount   = rows.filter(r => r.is_ssup === 'SSUP').length;
+    const noSsupCount = rows.filter(r => r.is_ssup === 'No').length;
+    const ssupTracked = ssupCount + noSsupCount;
+    const ssupRate    = ssupTracked > 0 ? (ssupCount / ssupTracked * 100).toFixed(1) + '%' : '—';
+
     let avgTimeBetween = 0;
     if (rows.length > 1) {
         const sortedRows = [...rows].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -700,6 +710,10 @@ function processData(rows) {
     document.getElementById('corporateEmails').textContent = corporateEmails;
     document.getElementById('highValueLeads').textContent = highValueLeads;
     document.getElementById('avgTimeBetween').textContent = avgTimeBetween + 'h';
+    document.getElementById('ssupCount').textContent   = ssupCount;
+    document.getElementById('noSsupCount').textContent = noSsupCount;
+    document.getElementById('ssupTracked').textContent = ssupTracked;
+    document.getElementById('ssupRate').textContent    = ssupRate;
 
     document.getElementById('thisWeekValue').textContent = thisWeek;
     document.getElementById('lastWeekValue').textContent = lastWeek;
@@ -921,6 +935,12 @@ function updateRecentTable(recentRows) {
         const hasNote = !!leadNotes[row.Email];
         const noteTitle = hasNote ? leadNotes[row.Email].replace(/'/g, '&#39;').substring(0, 80) + (leadNotes[row.Email].length > 80 ? '…' : '') : 'Add note';
         const emailEsc = row.Email.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+        const ssupVal = row.is_ssup;
+        const ssupBadge = ssupVal === 'SSUP'
+            ? '<span style="background:var(--success-light);color:var(--success);font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;">SSUP</span>'
+            : ssupVal === 'No'
+            ? '<span style="background:var(--surface-3);color:var(--text-muted);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;">No</span>'
+            : '<span style="color:var(--text-disabled);">—</span>';
 
         return `
             <tr>
@@ -932,6 +952,7 @@ function updateRecentTable(recentRows) {
                 <td>${row.service_offering || '—'}</td>
                 <td>${row.orderspermonth || '—'}</td>
                 <td><span class="lead-quality-badge ${qualityClass}">${qualityLabel}</span></td>
+                <td style="text-align:center;">${ssupBadge}</td>
                 <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;">${submissionCount}×</td>
                 <td style="text-align:center;">
                     <button class="notes-btn ${hasNote ? 'has-note' : ''}"
@@ -1299,6 +1320,8 @@ function computeWeekStats(rows, week) {
         }).length,
         newForms: weekRows.filter(r => newFormsList.includes(r.form)).length,
         legacy:   weekRows.filter(r => r.form === 'footer-contact_us_form').length,
+        ssup:     weekRows.filter(r => r.is_ssup === 'SSUP').length,
+        noSsup:   weekRows.filter(r => r.is_ssup === 'No').length,
     };
 }
 
@@ -1432,6 +1455,8 @@ function renderWeeklyAnalytics() {
                 <td style="text-align:center;font-family:'JetBrains Mono',monospace;">${stats.corporate || '—'}</td>
                 <td style="text-align:center;font-family:'JetBrains Mono',monospace;">${stats.newForms || '—'}</td>
                 <td style="text-align:center;font-family:'JetBrains Mono',monospace;">${stats.legacy || '—'}</td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--success);">${stats.ssup || '—'}</td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;color:var(--accent);">${(stats.ssup + stats.noSsup) > 0 ? (stats.ssup / (stats.ssup + stats.noSsup) * 100).toFixed(0) + '%' : '—'}</td>
                 <td style="text-align:center;">${changeHtml}</td>
             </tr>
         `;
@@ -1493,19 +1518,20 @@ function exportWeeklyExcel() {
 
     // ── Summary sheet (first tab) ──────────────────────────
     const summaryRows = [
-        ['Week', 'Total Submissions', 'Unique Emails', 'High Value', 'Medium Value', 'Low Value', 'Corporate', 'New Forms', 'Legacy Form']
+        ['Week', 'Total Submissions', 'Unique Emails', 'High Value', 'Medium Value', 'Low Value', 'Corporate', 'New Forms', 'Legacy Form', 'SSUP', 'Not SSUP', 'Conv %']
     ];
     weeks.forEach(week => {
         const s = computeWeekStats(allData, week);
-        summaryRows.push([weekLabel(week), s.total, s.unique, s.high, s.medium, s.low, s.corporate, s.newForms, s.legacy]);
+        const tracked = s.ssup + s.noSsup;
+        summaryRows.push([weekLabel(week), s.total, s.unique, s.high, s.medium, s.low, s.corporate, s.newForms, s.legacy, s.ssup, s.noSsup, tracked > 0 ? (s.ssup / tracked * 100).toFixed(1) + '%' : '—']);
     });
     const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
-    summaryWs['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 11 }, { wch: 12 }, { wch: 12 }, { wch: 13 }];
+    summaryWs['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 11 }, { wch: 12 }, { wch: 12 }, { wch: 13 }, { wch: 8 }, { wch: 10 }, { wch: 9 }];
     XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
 
     // ── Helper: convert deduplicated rows → worksheet ──────
-    const headers = ['Date & Time', 'Email', 'Domain', 'Phone', 'Company', 'Website', 'Form', 'Service', 'Orders / Month', 'Lead Quality', 'Notes'];
-    const colWidths = [{ wch: 22 }, { wch: 28 }, { wch: 20 }, { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 14 }, { wch: 13 }, { wch: 30 }];
+    const headers = ['Date & Time', 'Email', 'Domain', 'Phone', 'Company', 'Website', 'Form', 'Service', 'Orders / Month', 'Lead Quality', 'SSUP', 'Notes'];
+    const colWidths = [{ wch: 22 }, { wch: 28 }, { wch: 20 }, { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 14 }, { wch: 13 }, { wch: 8 }, { wch: 30 }];
 
     function rowsToSheet(rows) {
         const data = [
@@ -1525,6 +1551,7 @@ function exportWeeklyExcel() {
                         row.service_offering || '',
                         row.orderspermonth || '',
                         getLeadQuality(row.orderspermonth),
+                        row.is_ssup || '',
                         leadNotes[row.Email] || ''
                     ];
                 })
