@@ -1286,6 +1286,11 @@ function setSsupFormFilter(val, btn) {
     ssupFormFilter = val;
     document.querySelectorAll('#ssupPillAll, #ssupPillNew').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
+    // Reset dropdowns so they repopulate for the new filtered set
+    const s = document.getElementById('ssupServiceFilter');
+    const o = document.getElementById('ssupOrdersFilter');
+    if (s) s.innerHTML = '<option value="">All Services</option>';
+    if (o) o.innerHTML = '<option value="">All Orders/Month</option>';
     renderSsupTable();
 }
 
@@ -1301,7 +1306,25 @@ function renderSsupTable() {
 
     card.style.display = 'block';
 
-    const search = (document.getElementById('ssupSearch')?.value || '').toLowerCase();
+    const search        = (document.getElementById('ssupSearch')?.value || '').toLowerCase();
+    const serviceFilter = document.getElementById('ssupServiceFilter')?.value || '';
+    const ordersFilter  = document.getElementById('ssupOrdersFilter')?.value  || '';
+
+    // Populate dropdowns from SSUP leads (only on first call or when empty)
+    const serviceEl = document.getElementById('ssupServiceFilter');
+    const ordersEl  = document.getElementById('ssupOrdersFilter');
+    if (serviceEl && serviceEl.options.length <= 1) {
+        const services = [...new Set(allData.filter(isSsup).map(r => r.service_offering).filter(Boolean))].sort();
+        serviceEl.innerHTML = '<option value="">All Services</option>' +
+            services.map(s => `<option value="${s}">${s}</option>`).join('');
+        serviceEl.value = serviceFilter;
+    }
+    if (ordersEl && ordersEl.options.length <= 1) {
+        const orders = [...new Set(allData.filter(isSsup).map(r => r.orderspermonth).filter(Boolean))];
+        ordersEl.innerHTML = '<option value="">All Orders/Month</option>' +
+            orders.map(o => `<option value="${o}">${o}</option>`).join('');
+        ordersEl.value = ordersFilter;
+    }
 
     // Emails that submitted the legacy form at least once
     const legacyEmails = ssupFormFilter === 'new'
@@ -1311,6 +1334,8 @@ function renderSsupTable() {
     const rows = allData
         .filter(isSsup)
         .filter(r => !legacyEmails || !legacyEmails.has(r.Email))
+        .filter(r => !serviceFilter || r.service_offering === serviceFilter)
+        .filter(r => !ordersFilter  || r.orderspermonth  === ordersFilter)
         .filter(r => {
             if (!search) return true;
             return r.Email?.toLowerCase().includes(search) || getDomain(r.Email).toLowerCase().includes(search);

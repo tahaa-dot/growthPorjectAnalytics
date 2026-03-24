@@ -502,6 +502,13 @@
                         <button class="preset-pill" id="ssupPillNew" onclick="setSsupFormFilter('new', this)">New Forms Only</button>
                     </div>
                     <div class="section-filter-divider"></div>
+                    <select class="auto-refresh-select" id="ssupServiceFilter" onchange="renderSsupTable()" style="width:auto;min-width:130px;">
+                        <option value="">All Services</option>
+                    </select>
+                    <select class="auto-refresh-select" id="ssupOrdersFilter" onchange="renderSsupTable()" style="width:auto;min-width:140px;">
+                        <option value="">All Orders/Month</option>
+                    </select>
+                    <div class="section-filter-divider"></div>
                     <input class="section-search" type="text" id="ssupSearch" placeholder="Search email or domain…" oninput="renderSsupTable()" />
                 </div>
 
