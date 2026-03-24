@@ -1503,45 +1503,46 @@ function exportWeeklyExcel() {
     summaryWs['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 11 }, { wch: 12 }, { wch: 12 }, { wch: 13 }];
     XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
 
-    // ── One sheet per week ─────────────────────────────────
+    // ── Helper: convert deduplicated rows → worksheet ──────
     const headers = ['Date & Time', 'Email', 'Domain', 'Phone', 'Company', 'Website', 'Form', 'Service', 'Orders / Month', 'Lead Quality', 'Notes'];
+    const colWidths = [{ wch: 22 }, { wch: 28 }, { wch: 20 }, { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 14 }, { wch: 13 }, { wch: 30 }];
 
-    weeks.forEach(week => {
-        const weekRows = deduplicateForExport(
-            allData.filter(r => { const d = new Date(r.createdAt); return !isNaN(d) && d >= week.start && d < week.end; })
-        ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // newest first, one row per email
-
-        const sheetData = [
+    function rowsToSheet(rows) {
+        const data = [
             headers,
-            ...weekRows.map(row => {
-                const d = new Date(row.createdAt);
-                const dateStr = isNaN(d) ? '' : d.toLocaleString('en-US', {
-                    year: 'numeric', month: 'short', day: 'numeric',
-                    hour: '2-digit', minute: '2-digit', hour12: true
-                });
-                return [
-                    dateStr,
-                    row.Email || '',
-                    getDomain(row.Email),
-                    row.PhoneNumber || row.phonenumber || row.phone_number || row.phone || '',
-                    row.company || '',
-                    row.website || '',
-                    row.form || '',
-                    row.service_offering || '',
-                    row.orderspermonth || '',
-                    getLeadQuality(row.orderspermonth),
-                    leadNotes[row.Email] || ''
-                ];
-            })
+            ...deduplicateForExport(rows)
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .map(row => {
+                    const d = new Date(row.createdAt);
+                    return [
+                        isNaN(d) ? '' : d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }),
+                        row.Email || '',
+                        getDomain(row.Email),
+                        row.PhoneNumber || row.phonenumber || row.phone_number || row.phone || '',
+                        row.company || '',
+                        row.website || '',
+                        row.form || '',
+                        row.service_offering || '',
+                        row.orderspermonth || '',
+                        getLeadQuality(row.orderspermonth),
+                        leadNotes[row.Email] || ''
+                    ];
+                })
         ];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws['!cols'] = colWidths;
+        return ws;
+    }
 
-        const ws = XLSX.utils.aoa_to_sheet(sheetData);
-        ws['!cols'] = [{ wch: 22 }, { wch: 28 }, { wch: 20 }, { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 14 }, { wch: 13 }, { wch: 30 }];
-
-        // Sheet name: Excel max 31 chars, no \ / ? * [ ] :
+    // ── One sheet per week ─────────────────────────────────
+    weeks.forEach(week => {
+        const weekRows = allData.filter(r => { const d = new Date(r.createdAt); return !isNaN(d) && d >= week.start && d < week.end; });
         const name = weekLabel(week).replace(/[:\\/?*[\]]/g, '-').slice(0, 31);
-        XLSX.utils.book_append_sheet(wb, ws, name);
+        XLSX.utils.book_append_sheet(wb, rowsToSheet(weekRows), name);
     });
+
+    // ── All Leads tab (all weeks combined, one row per email) ──
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(allData), 'All Leads');
 
     const filename = `quiqup-weekly-${new Date().toLocaleDateString('en-CA')}.xlsx`;
     XLSX.writeFile(wb, filename);
