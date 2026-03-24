@@ -1252,26 +1252,28 @@ function exportToCSV() {
 
 /* ─── Weekly analytics ───────────────────────────────────── */
 
-function buildWeekBuckets(weekStartDay, numWeeks) {
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diff = (dayOfWeek - weekStartDay + 7) % 7;
-    const currentWeekStart = new Date(now);
-    currentWeekStart.setDate(now.getDate() - diff);
-    currentWeekStart.setHours(0, 0, 0, 0);
+function buildWeekBuckets(anchorDate, numWeeks) {
+    // anchorDate is the exact start of week 1; all subsequent weeks count from it
+    const anchor = new Date(anchorDate);
+    anchor.setHours(0, 0, 0, 0);
 
-    if (numWeeks === 0) {
-        if (allData.length === 0) return [];
-        const timestamps = allData.map(r => new Date(r.createdAt).getTime()).filter(t => !isNaN(t));
-        const earliest = new Date(Math.min(...timestamps));
-        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-        numWeeks = Math.min(Math.ceil((currentWeekStart - earliest) / msPerWeek) + 2, 104);
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    // How many complete weeks have passed since anchor (including current partial week)
+    const totalWeeks = Math.floor((now - anchor) / msPerWeek) + 1;
+
+    if (numWeeks === 0 || numWeeks > totalWeeks) {
+        numWeeks = Math.min(totalWeeks, 104);
     }
 
+    // Show the last `numWeeks` weeks up to today
+    const startOffset = Math.max(0, totalWeeks - numWeeks);
     const weeks = [];
-    for (let i = numWeeks - 1; i >= 0; i--) {
-        const start = new Date(currentWeekStart);
-        start.setDate(currentWeekStart.getDate() - i * 7);
+    for (let i = startOffset; i < startOffset + numWeeks; i++) {
+        const start = new Date(anchor);
+        start.setDate(anchor.getDate() + i * 7);
         const end = new Date(start);
         end.setDate(start.getDate() + 7);
         weeks.push({ start, end });
@@ -1351,10 +1353,20 @@ function renderWeeklyAnalytics() {
     if (!allData || allData.length === 0) { weeklyContent.style.display = 'none'; return; }
     weeklyContent.style.display = 'block';
 
-    const weekStartDay = parseInt(document.getElementById('weekStartDay')?.value ?? '1');
-    const numWeeks     = parseInt(document.getElementById('weekCount')?.value    ?? '12');
+    const dateInput = document.getElementById('weekStartDate');
+    // Auto-default to Monday of the week containing the earliest data point
+    if (dateInput && !dateInput.value && allData.length > 0) {
+        const timestamps = allData.map(r => new Date(r.createdAt).getTime()).filter(t => !isNaN(t));
+        const earliest = new Date(Math.min(...timestamps));
+        const dow = earliest.getDay();
+        earliest.setDate(earliest.getDate() - ((dow + 6) % 7)); // back to Monday
+        earliest.setHours(0, 0, 0, 0);
+        dateInput.value = earliest.toISOString().slice(0, 10);
+    }
+    if (!dateInput?.value) return;
 
-    const weeks     = buildWeekBuckets(weekStartDay, numWeeks);
+    const numWeeks = parseInt(document.getElementById('weekCount')?.value ?? '12');
+    const weeks    = buildWeekBuckets(new Date(dateInput.value + 'T00:00:00'), numWeeks);
     const weekStats = weeks.map(w => computeWeekStats(allData, w));
     const labels    = weeks.map(weekLabel);
 

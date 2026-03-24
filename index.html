@@ -628,15 +628,7 @@
 
                 <div class="section-filter-bar">
                     <span style="color:var(--text-secondary);font-size:12px;font-weight:600;white-space:nowrap;">Week starts on</span>
-                    <select class="auto-refresh-select" id="weekStartDay" onchange="renderWeeklyAnalytics()" style="width:auto;min-width:110px;">
-                        <option value="0">Sunday</option>
-                        <option value="1" selected>Monday</option>
-                        <option value="2">Tuesday</option>
-                        <option value="3">Wednesday</option>
-                        <option value="4">Thursday</option>
-                        <option value="5">Friday</option>
-                        <option value="6">Saturday</option>
-                    </select>
+                    <input class="filter-bar-date" type="date" id="weekStartDate" onchange="renderWeeklyAnalytics()" title="Pick the first day of your first week" />
                     <div class="section-filter-divider"></div>
                     <span style="color:var(--text-secondary);font-size:12px;font-weight:600;white-space:nowrap;">Show</span>
                     <select class="auto-refresh-select" id="weekCount" onchange="renderWeeklyAnalytics()" style="width:auto;min-width:130px;">
