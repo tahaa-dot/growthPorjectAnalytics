@@ -39,6 +39,10 @@
                 <span class="nav-icon">⬡</span>
                 <span class="nav-label">Deep Dive</span>
             </button>
+            <button class="nav-item" data-section="weekly" onclick="showSection('weekly')">
+                <span class="nav-icon">⬦</span>
+                <span class="nav-label">Weekly</span>
+            </button>
 
             <div class="nav-section-label" style="margin-top:8px;">Pipeline</div>
 
@@ -612,6 +616,74 @@
                         <div class="hot-leads-subtitle">High-value leads from the last 24 hours that need immediate follow-up</div>
                     </div>
                     <div id="hotLeadsList" class="collapsible-content"></div>
+                </div>
+            </div>
+
+            <!-- ══ WEEKLY ═════════════════════════════════════════ -->
+            <div class="page-section" id="section-weekly" style="display:none;">
+                <div class="page-header">
+                    <h1>Weekly Analytics</h1>
+                    <p>Week-over-week comparison — choose your week start day</p>
+                </div>
+
+                <div class="section-filter-bar">
+                    <span style="color:var(--text-secondary);font-size:12px;font-weight:600;white-space:nowrap;">Week starts on</span>
+                    <select class="auto-refresh-select" id="weekStartDay" onchange="renderWeeklyAnalytics()" style="width:auto;min-width:110px;">
+                        <option value="0">Sunday</option>
+                        <option value="1" selected>Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
+                    <div class="section-filter-divider"></div>
+                    <span style="color:var(--text-secondary);font-size:12px;font-weight:600;white-space:nowrap;">Show</span>
+                    <select class="auto-refresh-select" id="weekCount" onchange="renderWeeklyAnalytics()" style="width:auto;min-width:130px;">
+                        <option value="6">Last 6 weeks</option>
+                        <option value="12" selected>Last 12 weeks</option>
+                        <option value="24">Last 24 weeks</option>
+                        <option value="0">All time</option>
+                    </select>
+                </div>
+
+                <div id="weeklyContent" style="display:none;">
+                    <div class="charts-grid">
+                        <div class="chart-card" style="grid-column:span 2;">
+                            <h2>Total Submissions per Week</h2>
+                            <canvas id="weeklyTotalsChart"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h2>Lead Quality by Week</h2>
+                            <canvas id="weeklyQualityChart"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h2>Form Type by Week</h2>
+                            <canvas id="weeklyFormsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div style="padding:0 24px 24px;">
+                        <div class="table-card">
+                            <h2 style="margin-bottom:14px;">Week by Week Breakdown</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Week</th>
+                                        <th style="text-align:center;">Total</th>
+                                        <th style="text-align:center;">Unique</th>
+                                        <th style="text-align:center;">High Value</th>
+                                        <th style="text-align:center;">Medium Value</th>
+                                        <th style="text-align:center;">Corporate</th>
+                                        <th style="text-align:center;">New Forms</th>
+                                        <th style="text-align:center;">Legacy</th>
+                                        <th style="text-align:center;">vs Prev Week</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="weeklyTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 

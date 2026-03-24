@@ -19,6 +19,7 @@ function showSection(sectionId) {
         analytics: 'Analytics',
         forms: 'Forms',
         deepdive: 'Deep Dive',
+        weekly: 'Weekly Analytics',
         leads: 'Leads',
         alerts: 'Alerts'
     };
@@ -27,6 +28,7 @@ function showSection(sectionId) {
         analytics: 'Submission trends and patterns',
         forms: 'Form performance and conversion',
         deepdive: 'Domain analysis, velocity and timing',
+        weekly: 'Week-over-week performance comparison',
         leads: 'All submissions with status tracking',
         alerts: 'Smart alerts and hot leads requiring action'
     };
@@ -1248,6 +1250,179 @@ function exportToCSV() {
     window.URL.revokeObjectURL(url);
 }
 
+/* ─── Weekly analytics ───────────────────────────────────── */
+
+function buildWeekBuckets(weekStartDay, numWeeks) {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = (dayOfWeek - weekStartDay + 7) % 7;
+    const currentWeekStart = new Date(now);
+    currentWeekStart.setDate(now.getDate() - diff);
+    currentWeekStart.setHours(0, 0, 0, 0);
+
+    if (numWeeks === 0) {
+        if (allData.length === 0) return [];
+        const timestamps = allData.map(r => new Date(r.createdAt).getTime()).filter(t => !isNaN(t));
+        const earliest = new Date(Math.min(...timestamps));
+        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+        numWeeks = Math.min(Math.ceil((currentWeekStart - earliest) / msPerWeek) + 2, 104);
+    }
+
+    const weeks = [];
+    for (let i = numWeeks - 1; i >= 0; i--) {
+        const start = new Date(currentWeekStart);
+        start.setDate(currentWeekStart.getDate() - i * 7);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 7);
+        weeks.push({ start, end });
+    }
+    return weeks;
+}
+
+function computeWeekStats(rows, week) {
+    const weekRows = rows.filter(r => {
+        const d = new Date(r.createdAt);
+        return !isNaN(d) && d >= week.start && d < week.end;
+    });
+    const newFormsList = ['contactus-downloadguide', 'contactus-quotation'];
+    return {
+        total: weekRows.length,
+        unique: new Set(weekRows.map(r => r.Email)).size,
+        high:   weekRows.filter(r => getLeadQuality(r.orderspermonth) === 'high').length,
+        medium: weekRows.filter(r => getLeadQuality(r.orderspermonth) === 'medium').length,
+        low:    weekRows.filter(r => getLeadQuality(r.orderspermonth) === 'low').length,
+        corporate: weekRows.filter(r => {
+            const d = getDomain(r.Email).toLowerCase();
+            return d !== 'gmail.com' && d !== 'yahoo.com' && d !== 'hotmail.com' && d !== 'outlook.com' && d !== 'unknown';
+        }).length,
+        newForms: weekRows.filter(r => newFormsList.includes(r.form)).length,
+        legacy:   weekRows.filter(r => r.form === 'footer-contact_us_form').length,
+    };
+}
+
+function weekLabel(week) {
+    const opts = { month: 'short', day: 'numeric' };
+    const s = week.start.toLocaleDateString('en-US', opts);
+    const eDay = new Date(week.end);
+    eDay.setDate(eDay.getDate() - 1);
+    return `${s} – ${eDay.toLocaleDateString('en-US', opts)}`;
+}
+
+function renderWeeklyChart(canvasId, type, data, stacked) {
+    if (charts[canvasId]) { charts[canvasId].destroy(); delete charts[canvasId]; }
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    const isDark = document.body.classList.contains('dark-mode');
+    const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
+    const tickColor = isDark ? '#4a4770' : '#9896b4';
+
+    charts[canvasId] = new Chart(ctx, {
+        type,
+        data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            animation: { duration: 400 },
+            plugins: {
+                legend: {
+                    display: !!stacked,
+                    position: 'bottom',
+                    labels: { color: tickColor, font: { family: "'Plus Jakarta Sans'" }, boxWidth: 10, padding: 12 }
+                },
+                tooltip: {
+                    backgroundColor: isDark ? '#1a1929' : '#fff',
+                    titleColor: isDark ? '#e4e1ff' : '#18162e',
+                    bodyColor: isDark ? '#7a76a8' : '#5a567e',
+                    borderColor: isDark ? 'rgba(108,101,247,0.2)' : 'rgba(108,101,247,0.13)',
+                    borderWidth: 1, padding: 10, cornerRadius: 8
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, stacked: !!stacked, ticks: { stepSize: 1, color: tickColor, font: { family: "'JetBrains Mono'" } }, grid: { color: gridColor } },
+                x: { stacked: !!stacked, ticks: { color: tickColor, font: { family: "'Plus Jakarta Sans'", size: 10 }, maxRotation: 45 }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+function renderWeeklyAnalytics() {
+    const weeklyContent = document.getElementById('weeklyContent');
+    if (!weeklyContent) return;
+    if (!allData || allData.length === 0) { weeklyContent.style.display = 'none'; return; }
+    weeklyContent.style.display = 'block';
+
+    const weekStartDay = parseInt(document.getElementById('weekStartDay')?.value ?? '1');
+    const numWeeks     = parseInt(document.getElementById('weekCount')?.value    ?? '12');
+
+    const weeks     = buildWeekBuckets(weekStartDay, numWeeks);
+    const weekStats = weeks.map(w => computeWeekStats(allData, w));
+    const labels    = weeks.map(weekLabel);
+
+    // Chart 1 — total submissions per week
+    renderWeeklyChart('weeklyTotalsChart', 'bar', {
+        labels,
+        datasets: [{
+            label: 'Submissions',
+            data: weekStats.map(s => s.total),
+            backgroundColor: '#7c3aed', borderColor: '#7c3aed', borderWidth: 1, borderRadius: 4
+        }]
+    });
+
+    // Chart 2 — lead quality stacked
+    renderWeeklyChart('weeklyQualityChart', 'bar', {
+        labels,
+        datasets: [
+            { label: 'High (500+)',     data: weekStats.map(s => s.high),   backgroundColor: '#059669', borderWidth: 0 },
+            { label: 'Medium (151–500)',data: weekStats.map(s => s.medium), backgroundColor: '#d97706', borderWidth: 0 },
+            { label: 'Low (<150)',      data: weekStats.map(s => s.low),    backgroundColor: '#dc2626', borderWidth: 0 }
+        ]
+    }, true);
+
+    // Chart 3 — form type stacked
+    renderWeeklyChart('weeklyFormsChart', 'bar', {
+        labels,
+        datasets: [
+            { label: 'New Forms',   data: weekStats.map(s => s.newForms), backgroundColor: '#0284c7', borderWidth: 0 },
+            { label: 'Legacy Form', data: weekStats.map(s => s.legacy),   backgroundColor: '#f59e0b', borderWidth: 0 }
+        ]
+    }, true);
+
+    // Table — newest first
+    const revWeeks = [...weeks].reverse();
+    const revStats = [...weekStats].reverse();
+
+    document.getElementById('weeklyTableBody').innerHTML = revStats.map((stats, i) => {
+        const isCurrentWeek = i === 0;
+        const prevStats = revStats[i + 1];
+        let changeHtml = '<span style="color:var(--text-muted);">—</span>';
+        if (prevStats !== undefined) {
+            if (prevStats.total === 0 && stats.total > 0) {
+                changeHtml = '<span class="change positive">New</span>';
+            } else if (prevStats.total > 0) {
+                const pct = ((stats.total - prevStats.total) / prevStats.total * 100).toFixed(0);
+                const cls = pct > 0 ? 'positive' : pct < 0 ? 'negative' : '';
+                changeHtml = `<span class="change ${cls}">${pct > 0 ? '+' : ''}${pct}%</span>`;
+            }
+        }
+        return `
+            <tr${isCurrentWeek ? ' style="background:var(--accent-light);"' : ''}>
+                <td style="white-space:nowrap;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">${weekLabel(revWeeks[i])}</span>
+                    ${isCurrentWeek ? '<span style="margin-left:8px;background:var(--accent-mid);color:var(--accent);font-size:9px;padding:2px 7px;border-radius:99px;font-weight:700;letter-spacing:0.04em;">current</span>' : ''}
+                </td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;">${stats.total}</td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;">${stats.unique}</td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--success);">${stats.high || '—'}</td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--warning);">${stats.medium || '—'}</td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;">${stats.corporate || '—'}</td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;">${stats.newForms || '—'}</td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;">${stats.legacy || '—'}</td>
+                <td style="text-align:center;">${changeHtml}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
 /* ─── Keyboard shortcuts ─────────────────────────────────── */
 document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'r') { e.preventDefault(); fetchData(); }
@@ -1301,6 +1476,7 @@ const _origProcessData = processData;
 processData = function(rows) {
     _origProcessData(rows);
     updateNavBadges();
+    renderWeeklyAnalytics();
 };
 
 /* ─── Init ───────────────────────────────────────────────── */
