@@ -1438,6 +1438,46 @@ function renderWeeklyAnalytics() {
     }).join('');
 }
 
+/* ─── Export deduplication ───────────────────────────────── */
+// Per-email, pick the single best submission using this priority:
+//   1. Legacy form (means Salesforce lead already exists)
+//   2. contactus-quotation (most intent)
+//   3. contactus-downloadguide
+//   4. anything else
+// Tiebreak within same form: prefer rows with phone > company/website > most fields filled
+function deduplicateForExport(rows) {
+    const formRank = form => {
+        if (form === 'footer-contact_us_form')   return 4;
+        if (form === 'contactus-quotation')       return 3;
+        if (form === 'contactus-downloadguide')   return 2;
+        return 1;
+    };
+    const completeness = row => {
+        let s = 0;
+        if (row.PhoneNumber || row.phonenumber || row.phone_number || row.phone) s += 10;
+        if (row.company)          s += 3;
+        if (row.website)          s += 2;
+        if (row.service_offering) s += 1;
+        if (row.orderspermonth)   s += 1;
+        return s;
+    };
+
+    const byEmail = {};
+    rows.forEach(r => {
+        if (!byEmail[r.Email]) byEmail[r.Email] = [];
+        byEmail[r.Email].push(r);
+    });
+
+    return Object.values(byEmail).map(submissions => {
+        if (submissions.length === 1) return submissions[0];
+        return submissions.slice().sort((a, b) => {
+            const rankDiff = formRank(b.form) - formRank(a.form);
+            if (rankDiff !== 0) return rankDiff;
+            return completeness(b) - completeness(a);
+        })[0];
+    });
+}
+
 /* ─── Weekly Excel export ────────────────────────────────── */
 function exportWeeklyExcel() {
     if (typeof XLSX === 'undefined') { showError('Export library not loaded yet — try again in a moment'); return; }
@@ -1467,9 +1507,9 @@ function exportWeeklyExcel() {
     const headers = ['Date & Time', 'Email', 'Domain', 'Phone', 'Company', 'Website', 'Form', 'Service', 'Orders / Month', 'Lead Quality', 'Notes'];
 
     weeks.forEach(week => {
-        const weekRows = allData
-            .filter(r => { const d = new Date(r.createdAt); return !isNaN(d) && d >= week.start && d < week.end; })
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // newest first
+        const weekRows = deduplicateForExport(
+            allData.filter(r => { const d = new Date(r.createdAt); return !isNaN(d) && d >= week.start && d < week.end; })
+        ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // newest first, one row per email
 
         const sheetData = [
             headers,
