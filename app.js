@@ -1438,6 +1438,75 @@ function renderWeeklyAnalytics() {
     }).join('');
 }
 
+/* ─── Weekly Excel export ────────────────────────────────── */
+function exportWeeklyExcel() {
+    if (typeof XLSX === 'undefined') { showError('Export library not loaded yet — try again in a moment'); return; }
+    if (!allData || allData.length === 0) { showError('No data to export'); return; }
+
+    const dateInput = document.getElementById('weekStartDate');
+    if (!dateInput?.value) { showError('Pick a week start date first'); return; }
+
+    const weeks = buildWeekBuckets(new Date(dateInput.value + 'T00:00:00'), 0);
+    if (weeks.length === 0) { showError('No weeks in range'); return; }
+
+    const wb = XLSX.utils.book_new();
+
+    // ── Summary sheet (first tab) ──────────────────────────
+    const summaryRows = [
+        ['Week', 'Total Submissions', 'Unique Emails', 'High Value', 'Medium Value', 'Low Value', 'Corporate', 'New Forms', 'Legacy Form']
+    ];
+    weeks.forEach(week => {
+        const s = computeWeekStats(allData, week);
+        summaryRows.push([weekLabel(week), s.total, s.unique, s.high, s.medium, s.low, s.corporate, s.newForms, s.legacy]);
+    });
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
+    summaryWs['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 11 }, { wch: 12 }, { wch: 12 }, { wch: 13 }];
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+    // ── One sheet per week ─────────────────────────────────
+    const headers = ['Date & Time', 'Email', 'Domain', 'Phone', 'Company', 'Website', 'Form', 'Service', 'Orders / Month', 'Lead Quality', 'Notes'];
+
+    weeks.forEach(week => {
+        const weekRows = allData
+            .filter(r => { const d = new Date(r.createdAt); return !isNaN(d) && d >= week.start && d < week.end; })
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // newest first
+
+        const sheetData = [
+            headers,
+            ...weekRows.map(row => {
+                const d = new Date(row.createdAt);
+                const dateStr = isNaN(d) ? '' : d.toLocaleString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: true
+                });
+                return [
+                    dateStr,
+                    row.Email || '',
+                    getDomain(row.Email),
+                    row.PhoneNumber || row.phonenumber || row.phone_number || row.phone || '',
+                    row.company || '',
+                    row.website || '',
+                    row.form || '',
+                    row.service_offering || '',
+                    row.orderspermonth || '',
+                    getLeadQuality(row.orderspermonth),
+                    leadNotes[row.Email] || ''
+                ];
+            })
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        ws['!cols'] = [{ wch: 22 }, { wch: 28 }, { wch: 20 }, { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 14 }, { wch: 13 }, { wch: 30 }];
+
+        // Sheet name: Excel max 31 chars, no \ / ? * [ ] :
+        const name = weekLabel(week).replace(/[:\\/?*[\]]/g, '-').slice(0, 31);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+    });
+
+    const filename = `quiqup-weekly-${new Date().toLocaleDateString('en-CA')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+}
+
 /* ─── Keyboard shortcuts ─────────────────────────────────── */
 document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'r') { e.preventDefault(); fetchData(); }

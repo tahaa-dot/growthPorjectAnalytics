@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiqup Analytics</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -629,6 +630,8 @@
                 <div class="section-filter-bar">
                     <span style="color:var(--text-secondary);font-size:12px;font-weight:600;white-space:nowrap;">Week starts on</span>
                     <input class="filter-bar-date" type="date" id="weekStartDate" onchange="renderWeeklyAnalytics()" title="Pick the first day of your first week" />
+                    <div class="section-filter-divider"></div>
+                    <button class="topbar-btn" onclick="exportWeeklyExcel()" style="margin-left:auto;">↓ Export to Excel</button>
                 </div>
 
                 <div id="weeklyContent" style="display:none;">
