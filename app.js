@@ -404,10 +404,10 @@ function applyFilters() {
         if (email && !row.Email?.toLowerCase().includes(email)) return false;
         if (orders && row.orderspermonth !== orders) return false;
         if (qualityFilter && getLeadQuality(row.orderspermonth) !== qualityFilter) return false;
-        const ssupNorm = typeof row.is_ssup === 'string' ? row.is_ssup.trim().toUpperCase() : '';
-        if (ssupFilter === 'untracked' && (ssupNorm === 'SSUP' || ssupNorm === 'NO')) return false;
-        if (ssupFilter === 'SSUP' && ssupNorm !== 'SSUP') return false;
-        if (ssupFilter === 'No'   && ssupNorm !== 'NO')   return false;
+        const ssupNorm = normSsup(row);
+        const knownValues = ['SSUP', 'NO', 'NON SSUP ACCOUNT', 'LEGACY FORM'];
+        if (ssupFilter === 'untracked' && knownValues.includes(ssupNorm)) return false;
+        if (ssupFilter && ssupFilter !== 'untracked' && ssupNorm !== ssupFilter.trim().toUpperCase()) return false;
         return true;
     });
 
@@ -688,10 +688,11 @@ function processData(rows) {
     }).length;
     const highValueLeads = rows.filter(r => getLeadQuality(r.orderspermonth) === 'high').length;
 
-    const ssupCount   = rows.filter(isSsup).length;
-    const noSsupCount = rows.filter(r => typeof r.is_ssup === 'string' && r.is_ssup.trim().toUpperCase() === 'NO').length;
-    const ssupTracked = ssupCount + noSsupCount;
-    const ssupRate    = ssupTracked > 0 ? (ssupCount / ssupTracked * 100).toFixed(1) + '%' : '—';
+    const ssupCount            = rows.filter(isSsup).length;
+    const noSsupCount          = rows.filter(r => normSsup(r) === 'NO').length;
+    const nonSsupAccountCount  = rows.filter(r => normSsup(r) === 'NON SSUP ACCOUNT').length;
+    const ssupTracked          = ssupCount + noSsupCount + nonSsupAccountCount;
+    const ssupRate             = ssupTracked > 0 ? (ssupCount / ssupTracked * 100).toFixed(1) + '%' : '—';
 
     let avgTimeBetween = 0;
     if (rows.length > 1) {
@@ -713,10 +714,10 @@ function processData(rows) {
     document.getElementById('corporateEmails').textContent = corporateEmails;
     document.getElementById('highValueLeads').textContent = highValueLeads;
     document.getElementById('avgTimeBetween').textContent = avgTimeBetween + 'h';
-    document.getElementById('ssupCount').textContent   = ssupCount;
-    document.getElementById('noSsupCount').textContent = noSsupCount;
-    document.getElementById('ssupTracked').textContent = ssupTracked;
-    document.getElementById('ssupRate').textContent    = ssupRate;
+    document.getElementById('ssupCount').textContent           = ssupCount;
+    document.getElementById('noSsupCount').textContent         = noSsupCount;
+    document.getElementById('nonSsupAccountCount').textContent = nonSsupAccountCount;
+    document.getElementById('ssupRate').textContent            = ssupRate;
 
     document.getElementById('thisWeekValue').textContent = thisWeek;
     document.getElementById('lastWeekValue').textContent = lastWeek;
@@ -938,11 +939,15 @@ function updateRecentTable(recentRows) {
         const hasNote = !!leadNotes[row.Email];
         const noteTitle = hasNote ? leadNotes[row.Email].replace(/'/g, '&#39;').substring(0, 80) + (leadNotes[row.Email].length > 80 ? '…' : '') : 'Add note';
         const emailEsc = row.Email.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-        const ssupVal = typeof row.is_ssup === 'string' ? row.is_ssup.trim().toUpperCase() : '';
+        const ssupVal = normSsup(row);
         const ssupBadge = ssupVal === 'SSUP'
             ? '<span style="background:var(--success-light);color:var(--success);font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;">SSUP</span>'
             : ssupVal === 'NO'
-            ? '<span style="background:var(--surface-3);color:var(--text-muted);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;">No</span>'
+            ? '<span style="background:var(--surface-3);color:var(--text-muted);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;">Not Converted</span>'
+            : ssupVal === 'NON SSUP ACCOUNT'
+            ? '<span style="background:var(--info-light);color:var(--info);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;">Sales Closed</span>'
+            : ssupVal === 'LEGACY FORM'
+            ? '<span style="background:var(--warning-light);color:var(--warning);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;">Legacy Form</span>'
             : '<span style="color:var(--text-disabled);">—</span>';
 
         return `
@@ -1275,10 +1280,10 @@ function exportToCSV() {
 }
 
 /* ─── SSUP table ─────────────────────────────────────────── */
-function isSsup(r) {
-    // Handles 'SSUP', 'ssup', 'Ssup' — whatever case comes from the webhook
-    return typeof r.is_ssup === 'string' && r.is_ssup.trim().toUpperCase() === 'SSUP';
+function normSsup(r) {
+    return typeof r.is_ssup === 'string' ? r.is_ssup.trim().toUpperCase() : '';
 }
+function isSsup(r) { return normSsup(r) === 'SSUP'; }
 
 function renderSsupTable() {
     const card = document.getElementById('ssupTableCard');
@@ -1389,8 +1394,9 @@ function computeWeekStats(rows, week) {
         }).length,
         newForms: weekRows.filter(r => newFormsList.includes(r.form)).length,
         legacy:   weekRows.filter(r => r.form === 'footer-contact_us_form').length,
-        ssup:   weekRows.filter(isSsup).length,
-        noSsup: weekRows.filter(r => typeof r.is_ssup === 'string' && r.is_ssup.trim().toUpperCase() === 'NO').length,
+        ssup:           weekRows.filter(isSsup).length,
+        noSsup:         weekRows.filter(r => normSsup(r) === 'NO').length,
+        nonSsupAccount: weekRows.filter(r => normSsup(r) === 'NON SSUP ACCOUNT').length,
     };
 }
 
@@ -1525,7 +1531,7 @@ function renderWeeklyAnalytics() {
                 <td style="text-align:center;font-family:'JetBrains Mono',monospace;">${stats.newForms || '—'}</td>
                 <td style="text-align:center;font-family:'JetBrains Mono',monospace;">${stats.legacy || '—'}</td>
                 <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--success);">${stats.ssup || '—'}</td>
-                <td style="text-align:center;font-family:'JetBrains Mono',monospace;color:var(--accent);">${(stats.ssup + stats.noSsup) > 0 ? (stats.ssup / (stats.ssup + stats.noSsup) * 100).toFixed(0) + '%' : '—'}</td>
+                <td style="text-align:center;font-family:'JetBrains Mono',monospace;color:var(--accent);">${(stats.ssup + stats.noSsup + stats.nonSsupAccount) > 0 ? (stats.ssup / (stats.ssup + stats.noSsup + stats.nonSsupAccount) * 100).toFixed(0) + '%' : '—'}</td>
                 <td style="text-align:center;">${changeHtml}</td>
             </tr>
         `;
@@ -1587,12 +1593,12 @@ function exportWeeklyExcel() {
 
     // ── Summary sheet (first tab) ──────────────────────────
     const summaryRows = [
-        ['Week', 'Total Submissions', 'Unique Emails', 'High Value', 'Medium Value', 'Low Value', 'Corporate', 'New Forms', 'Legacy Form', 'SSUP', 'Not SSUP', 'Conv %']
+        ['Week', 'Total Submissions', 'Unique Emails', 'High Value', 'Medium Value', 'Low Value', 'Corporate', 'New Forms', 'Legacy Form', 'SSUP', 'Not Converted', 'Sales Closed', 'Conv %']
     ];
     weeks.forEach(week => {
         const s = computeWeekStats(allData, week);
-        const tracked = s.ssup + s.noSsup;
-        summaryRows.push([weekLabel(week), s.total, s.unique, s.high, s.medium, s.low, s.corporate, s.newForms, s.legacy, s.ssup, s.noSsup, tracked > 0 ? (s.ssup / tracked * 100).toFixed(1) + '%' : '—']);
+        const tracked = s.ssup + s.noSsup + s.nonSsupAccount;
+        summaryRows.push([weekLabel(week), s.total, s.unique, s.high, s.medium, s.low, s.corporate, s.newForms, s.legacy, s.ssup, s.noSsup, s.nonSsupAccount, tracked > 0 ? (s.ssup / tracked * 100).toFixed(1) + '%' : '—']);
     });
     const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
     summaryWs['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 11 }, { wch: 12 }, { wch: 12 }, { wch: 13 }, { wch: 8 }, { wch: 10 }, { wch: 9 }];

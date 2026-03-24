@@ -204,22 +204,27 @@
                             <div class="stat-card">
                                 <div class="label">Total Submissions</div>
                                 <div class="value" id="totalSubmissions">0</div>
+                                <div class="metric-sublabel">Every form entry, including repeat emails</div>
                             </div>
                             <div class="stat-card">
                                 <div class="label">Unique Submissions</div>
                                 <div class="value" id="uniqueSubmissions">0</div>
+                                <div class="metric-sublabel">One count per email address</div>
                             </div>
                             <div class="stat-card">
                                 <div class="label">Last Hour</div>
                                 <div class="value" id="lastHour">0</div>
+                                <div class="metric-sublabel">Submitted in the last 60 minutes</div>
                             </div>
                             <div class="stat-card">
                                 <div class="label">Today</div>
                                 <div class="value" id="today">0</div>
+                                <div class="metric-sublabel">Submitted in the last 24 hours</div>
                             </div>
                             <div class="stat-card">
                                 <div class="label">This Week</div>
                                 <div class="value" id="thisWeek">0</div>
+                                <div class="metric-sublabel">Submitted in the last 7 days</div>
                             </div>
                         </div>
                     </div>
@@ -230,22 +235,27 @@
                             <div class="stat-card">
                                 <div class="label">Unique Emails</div>
                                 <div class="value" id="uniqueEmails">0</div>
+                                <div class="metric-sublabel">Distinct email addresses in current view</div>
                             </div>
                             <div class="stat-card">
                                 <div class="label">Gmail Users</div>
                                 <div class="value" id="gmailUsers">0</div>
+                                <div class="metric-sublabel">Submissions from @gmail.com — likely individuals</div>
                             </div>
                             <div class="stat-card">
                                 <div class="label">Corporate Emails</div>
                                 <div class="value" id="corporateEmails">0</div>
+                                <div class="metric-sublabel">Non-free domains (not Gmail / Yahoo / Hotmail)</div>
                             </div>
                             <div class="stat-card">
                                 <div class="label">High Value Leads</div>
                                 <div class="value" id="highValueLeads">0</div>
+                                <div class="metric-sublabel">Companies shipping 500+ orders / month</div>
                             </div>
                             <div class="stat-card">
                                 <div class="label">Avg Time Between</div>
                                 <div class="value" id="avgTimeBetween" style="font-size:22px;">0h</div>
+                                <div class="metric-sublabel">Average gap between consecutive submissions</div>
                             </div>
                         </div>
                     </div>
@@ -256,22 +266,22 @@
                             <div class="stat-card">
                                 <div class="label">SSUP</div>
                                 <div class="value" id="ssupCount" style="color:var(--success);">0</div>
-                                <div class="metric-sublabel">Created an account</div>
+                                <div class="metric-sublabel">Submitted a form and self signed up</div>
                             </div>
                             <div class="stat-card">
-                                <div class="label">Not SSUP</div>
+                                <div class="label">Not Converted</div>
                                 <div class="value" id="noSsupCount" style="color:var(--text-muted);">0</div>
-                                <div class="metric-sublabel">Tracked, no account</div>
+                                <div class="metric-sublabel">Submitted but no account created</div>
                             </div>
                             <div class="stat-card">
-                                <div class="label">Tracked Leads</div>
-                                <div class="value" id="ssupTracked">0</div>
-                                <div class="metric-sublabel">Has SSUP status</div>
+                                <div class="label">Sales Closed</div>
+                                <div class="value" id="nonSsupAccountCount" style="color:var(--info);">0</div>
+                                <div class="metric-sublabel">Account opened by the sales team</div>
                             </div>
                             <div class="stat-card">
                                 <div class="label">Conversion Rate</div>
                                 <div class="value" id="ssupRate" style="color:var(--accent);">—</div>
-                                <div class="metric-sublabel">SSUP / tracked</div>
+                                <div class="metric-sublabel">% of tracked leads who self signed up</div>
                             </div>
                         </div>
                     </div>
@@ -591,8 +601,10 @@
                             <label>SSUP Status</label>
                             <select id="filterSsup">
                                 <option value="">All</option>
-                                <option value="SSUP">SSUP ✓</option>
-                                <option value="No">Not SSUP</option>
+                                <option value="SSUP">SSUP</option>
+                                <option value="No">Not Converted</option>
+                                <option value="Non SSUP Account">Sales Closed</option>
+                                <option value="Legacy Form">Legacy Form</option>
                                 <option value="untracked">Not tracked</option>
                             </select>
                         </div>
