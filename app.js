@@ -404,9 +404,10 @@ function applyFilters() {
         if (email && !row.Email?.toLowerCase().includes(email)) return false;
         if (orders && row.orderspermonth !== orders) return false;
         if (qualityFilter && getLeadQuality(row.orderspermonth) !== qualityFilter) return false;
-        if (ssupFilter === 'untracked' && (row.is_ssup === 'SSUP' || row.is_ssup === 'No')) return false;
-        if (ssupFilter === 'SSUP' && row.is_ssup !== 'SSUP') return false;
-        if (ssupFilter === 'No'   && row.is_ssup !== 'No')   return false;
+        const ssupNorm = typeof row.is_ssup === 'string' ? row.is_ssup.trim().toUpperCase() : '';
+        if (ssupFilter === 'untracked' && (ssupNorm === 'SSUP' || ssupNorm === 'NO')) return false;
+        if (ssupFilter === 'SSUP' && ssupNorm !== 'SSUP') return false;
+        if (ssupFilter === 'No'   && ssupNorm !== 'NO')   return false;
         return true;
     });
 
@@ -687,8 +688,8 @@ function processData(rows) {
     }).length;
     const highValueLeads = rows.filter(r => getLeadQuality(r.orderspermonth) === 'high').length;
 
-    const ssupCount   = rows.filter(r => r.is_ssup === 'SSUP').length;
-    const noSsupCount = rows.filter(r => r.is_ssup === 'No').length;
+    const ssupCount   = rows.filter(isSsup).length;
+    const noSsupCount = rows.filter(r => typeof r.is_ssup === 'string' && r.is_ssup.trim().toUpperCase() === 'NO').length;
     const ssupTracked = ssupCount + noSsupCount;
     const ssupRate    = ssupTracked > 0 ? (ssupCount / ssupTracked * 100).toFixed(1) + '%' : '—';
 
@@ -937,10 +938,10 @@ function updateRecentTable(recentRows) {
         const hasNote = !!leadNotes[row.Email];
         const noteTitle = hasNote ? leadNotes[row.Email].replace(/'/g, '&#39;').substring(0, 80) + (leadNotes[row.Email].length > 80 ? '…' : '') : 'Add note';
         const emailEsc = row.Email.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-        const ssupVal = row.is_ssup;
+        const ssupVal = typeof row.is_ssup === 'string' ? row.is_ssup.trim().toUpperCase() : '';
         const ssupBadge = ssupVal === 'SSUP'
             ? '<span style="background:var(--success-light);color:var(--success);font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;">SSUP</span>'
-            : ssupVal === 'No'
+            : ssupVal === 'NO'
             ? '<span style="background:var(--surface-3);color:var(--text-muted);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;">No</span>'
             : '<span style="color:var(--text-disabled);">—</span>';
 
@@ -1274,26 +1275,41 @@ function exportToCSV() {
 }
 
 /* ─── SSUP table ─────────────────────────────────────────── */
+function isSsup(r) {
+    // Handles 'SSUP', 'ssup', 'Ssup' — whatever case comes from the webhook
+    return typeof r.is_ssup === 'string' && r.is_ssup.trim().toUpperCase() === 'SSUP';
+}
+
 function renderSsupTable() {
     const card = document.getElementById('ssupTableCard');
     if (!card) return;
+    if (!allData || allData.length === 0) return;
+
+    card.style.display = 'block';
 
     const search = (document.getElementById('ssupSearch')?.value || '').toLowerCase();
 
     const rows = allData
-        .filter(r => r.is_ssup === 'SSUP')
+        .filter(isSsup)
         .filter(r => {
             if (!search) return true;
             return r.Email?.toLowerCase().includes(search) || getDomain(r.Email).toLowerCase().includes(search);
         })
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    card.style.display = rows.length > 0 || allData.some(r => r.is_ssup === 'SSUP') ? 'block' : 'none';
+    const total = allData.filter(isSsup).length;
     document.getElementById('ssupTableCount').textContent = rows.length;
 
     const nb = document.getElementById('nbadge-ssup');
-    const total = allData.filter(r => r.is_ssup === 'SSUP').length;
     if (nb) { nb.textContent = total; nb.className = 'nav-badge' + (total > 0 ? ' visible' : ''); }
+
+    if (rows.length === 0) {
+        document.getElementById('ssupTableBody').innerHTML = `
+            <tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">
+                No SSUP leads found${search ? ' matching "' + search + '"' : ''}
+            </td></tr>`;
+        return;
+    }
 
     document.getElementById('ssupTableBody').innerHTML = rows.map(row => {
         const d = new Date(row.createdAt);
@@ -1302,7 +1318,6 @@ function renderSsupTable() {
             hour: '2-digit', minute: '2-digit', hour12: true
         });
         const quality = getLeadQuality(row.orderspermonth);
-        const qualityClass = `lead-quality-${quality}`;
         const qualityLabel = quality === 'high' ? 'High' : quality === 'medium' ? 'Medium' : 'Low';
         const phone = row.PhoneNumber || row.phonenumber || row.phone_number || row.phone || '—';
         const formLabel = row.form === 'contactus-downloadguide' ? 'Download Guide'
@@ -1318,7 +1333,7 @@ function renderSsupTable() {
                 <td>${formLabel}</td>
                 <td>${row.service_offering || '—'}</td>
                 <td style="font-family:'JetBrains Mono',monospace;">${row.orderspermonth || '—'}</td>
-                <td><span class="lead-quality-badge ${qualityClass}">${qualityLabel}</span></td>
+                <td><span class="lead-quality-badge lead-quality-${quality}">${qualityLabel}</span></td>
                 <td>${row.company || '—'}</td>
             </tr>
         `;
@@ -1374,8 +1389,8 @@ function computeWeekStats(rows, week) {
         }).length,
         newForms: weekRows.filter(r => newFormsList.includes(r.form)).length,
         legacy:   weekRows.filter(r => r.form === 'footer-contact_us_form').length,
-        ssup:     weekRows.filter(r => r.is_ssup === 'SSUP').length,
-        noSsup:   weekRows.filter(r => r.is_ssup === 'No').length,
+        ssup:   weekRows.filter(isSsup).length,
+        noSsup: weekRows.filter(r => typeof r.is_ssup === 'string' && r.is_ssup.trim().toUpperCase() === 'NO').length,
     };
 }
 
