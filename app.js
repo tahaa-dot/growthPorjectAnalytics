@@ -1354,19 +1354,22 @@ function renderWeeklyAnalytics() {
     weeklyContent.style.display = 'block';
 
     const dateInput = document.getElementById('weekStartDate');
-    // Auto-default to Monday of the week containing the earliest data point
+    // Auto-default to the Monday of the week containing the earliest data point
     if (dateInput && !dateInput.value && allData.length > 0) {
         const timestamps = allData.map(r => new Date(r.createdAt).getTime()).filter(t => !isNaN(t));
         const earliest = new Date(Math.min(...timestamps));
-        const dow = earliest.getDay();
-        earliest.setDate(earliest.getDate() - ((dow + 6) % 7)); // back to Monday
+        earliest.setDate(earliest.getDate() - ((earliest.getDay() + 6) % 7)); // back to Monday
         earliest.setHours(0, 0, 0, 0);
-        dateInput.value = earliest.toISOString().slice(0, 10);
+        // Use LOCAL date parts to avoid UTC-shift bug
+        const y = earliest.getFullYear();
+        const m = String(earliest.getMonth() + 1).padStart(2, '0');
+        const d = String(earliest.getDate()).padStart(2, '0');
+        dateInput.value = `${y}-${m}-${d}`;
     }
     if (!dateInput?.value) return;
 
-    const numWeeks = parseInt(document.getElementById('weekCount')?.value ?? '12');
-    const weeks    = buildWeekBuckets(new Date(dateInput.value + 'T00:00:00'), numWeeks);
+    // Always show from chosen date to today
+    const weeks = buildWeekBuckets(new Date(dateInput.value + 'T00:00:00'), 0);
     const weekStats = weeks.map(w => computeWeekStats(allData, w));
     const labels    = weeks.map(weekLabel);
 
