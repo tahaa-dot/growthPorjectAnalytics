@@ -47,6 +47,11 @@
 
             <div class="nav-section-label" style="margin-top:8px;">Pipeline</div>
 
+            <button class="nav-item" data-section="ssup" onclick="showSection('ssup')">
+                <span class="nav-icon">✓</span>
+                <span class="nav-label">SSUP</span>
+                <span class="nav-badge" id="nbadge-ssup"></span>
+            </button>
             <button class="nav-item" data-section="leads" onclick="showSection('leads')">
                 <span class="nav-icon">≡</span>
                 <span class="nav-label">Leads</span>
@@ -471,6 +476,56 @@
                         <h2>Submissions by Day of Week</h2>
                         <canvas id="dayOfWeekChart"></canvas>
                     </div>
+                </div>
+            </div>
+
+            <!-- ══ SSUP ═══════════════════════════════════════ -->
+            <div class="page-section" id="section-ssup" style="display:none;">
+                <div class="page-header">
+                    <h1>SSUP</h1>
+                    <p>Leads who created an account after submitting a form</p>
+                </div>
+
+                <div class="section-filter-bar">
+                    <div class="filter-presets">
+                        <button class="preset-pill" onclick="setDatePreset('today', this)">Today</button>
+                        <button class="preset-pill" onclick="setDatePreset('7d', this)">7d</button>
+                        <button class="preset-pill" onclick="setDatePreset('30d', this)">30d</button>
+                        <button class="preset-pill" onclick="setDatePreset('month', this)">Month</button>
+                        <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
+                    </div>
+                    <div class="section-filter-divider"></div>
+                    <div class="date-range-group">
+                        <input class="filter-bar-date" type="date" id="ssupDateFrom" title="From" />
+                        <span class="date-range-sep">—</span>
+                        <input class="filter-bar-date" type="date" id="ssupDateTo" title="To" />
+                    </div>
+                    <div class="section-filter-divider"></div>
+                    <input class="section-search" type="text" id="ssupSearch" placeholder="Search email or domain…" oninput="renderSsupTable()" />
+                    <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
+                    <button class="filter-clear-btn" onclick="clearFilters()">Clear</button>
+                </div>
+
+                <div class="table-card" id="ssupTableCard" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                        <h2>SSUP Leads &nbsp;<span style="font-weight:400;color:var(--text-muted);font-size:12px;">(<span id="ssupTableCount">0</span> leads)</span></h2>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date &amp; Time</th>
+                                <th>Email</th>
+                                <th>Domain</th>
+                                <th>Phone</th>
+                                <th>Form</th>
+                                <th>Service</th>
+                                <th>Orders / Month</th>
+                                <th>Quality</th>
+                                <th>Company</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ssupTableBody"></tbody>
+                    </table>
                 </div>
             </div>
 

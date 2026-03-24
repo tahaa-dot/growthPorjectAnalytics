@@ -20,6 +20,7 @@ function showSection(sectionId) {
         forms: 'Forms',
         deepdive: 'Deep Dive',
         weekly: 'Weekly Analytics',
+        ssup: 'SSUP',
         leads: 'Leads',
         alerts: 'Alerts'
     };
@@ -29,6 +30,7 @@ function showSection(sectionId) {
         forms: 'Form performance and conversion',
         deepdive: 'Domain analysis, velocity and timing',
         weekly: 'Week-over-week performance comparison',
+        ssup: 'Leads who created an account after submitting a form',
         leads: 'All submissions with status tracking',
         alerts: 'Smart alerts and hot leads requiring action'
     };
@@ -414,7 +416,7 @@ function applyFilters() {
 
 function clearFilters() {
     // Clear all section date inputs
-    ['overview','analytics','forms','deepdive','alerts'].forEach(s => {
+    ['overview','analytics','forms','deepdive','ssup','alerts'].forEach(s => {
         const f = document.getElementById(s + 'DateFrom');
         const t = document.getElementById(s + 'DateTo');
         if (f) f.value = '';
@@ -1271,6 +1273,58 @@ function exportToCSV() {
     window.URL.revokeObjectURL(url);
 }
 
+/* ─── SSUP table ─────────────────────────────────────────── */
+function renderSsupTable() {
+    const card = document.getElementById('ssupTableCard');
+    if (!card) return;
+
+    const search = (document.getElementById('ssupSearch')?.value || '').toLowerCase();
+
+    const rows = allData
+        .filter(r => r.is_ssup === 'SSUP')
+        .filter(r => {
+            if (!search) return true;
+            return r.Email?.toLowerCase().includes(search) || getDomain(r.Email).toLowerCase().includes(search);
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    card.style.display = rows.length > 0 || allData.some(r => r.is_ssup === 'SSUP') ? 'block' : 'none';
+    document.getElementById('ssupTableCount').textContent = rows.length;
+
+    const nb = document.getElementById('nbadge-ssup');
+    const total = allData.filter(r => r.is_ssup === 'SSUP').length;
+    if (nb) { nb.textContent = total; nb.className = 'nav-badge' + (total > 0 ? ' visible' : ''); }
+
+    document.getElementById('ssupTableBody').innerHTML = rows.map(row => {
+        const d = new Date(row.createdAt);
+        const dateStr = isNaN(d) ? '—' : d.toLocaleString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: true
+        });
+        const quality = getLeadQuality(row.orderspermonth);
+        const qualityClass = `lead-quality-${quality}`;
+        const qualityLabel = quality === 'high' ? 'High' : quality === 'medium' ? 'Medium' : 'Low';
+        const phone = row.PhoneNumber || row.phonenumber || row.phone_number || row.phone || '—';
+        const formLabel = row.form === 'contactus-downloadguide' ? 'Download Guide'
+                        : row.form === 'contactus-quotation'      ? 'Quotation'
+                        : row.form === 'footer-contact_us_form'   ? 'Legacy Form'
+                        : row.form || '—';
+        return `
+            <tr>
+                <td style="white-space:nowrap;">${dateStr}</td>
+                <td>${row.Email || '—'}</td>
+                <td>${getDomain(row.Email)}</td>
+                <td>${phone}</td>
+                <td>${formLabel}</td>
+                <td>${row.service_offering || '—'}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">${row.orderspermonth || '—'}</td>
+                <td><span class="lead-quality-badge ${qualityClass}">${qualityLabel}</span></td>
+                <td>${row.company || '—'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
 /* ─── Weekly analytics ───────────────────────────────────── */
 
 function buildWeekBuckets(anchorDate, numWeeks) {
@@ -1628,6 +1682,7 @@ const _origProcessData = processData;
 processData = function(rows) {
     _origProcessData(rows);
     updateNavBadges();
+    renderSsupTable();
     renderWeeklyAnalytics();
 };
 
