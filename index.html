@@ -498,22 +498,11 @@
 
                 <div class="section-filter-bar">
                     <div class="filter-presets">
-                        <button class="preset-pill" onclick="setDatePreset('today', this)">Today</button>
-                        <button class="preset-pill" onclick="setDatePreset('7d', this)">7d</button>
-                        <button class="preset-pill" onclick="setDatePreset('30d', this)">30d</button>
-                        <button class="preset-pill" onclick="setDatePreset('month', this)">Month</button>
-                        <button class="preset-pill active" onclick="setDatePreset('all', this)">All Time</button>
-                    </div>
-                    <div class="section-filter-divider"></div>
-                    <div class="date-range-group">
-                        <input class="filter-bar-date" type="date" id="ssupDateFrom" title="From" />
-                        <span class="date-range-sep">—</span>
-                        <input class="filter-bar-date" type="date" id="ssupDateTo" title="To" />
+                        <button class="preset-pill active" id="ssupPillAll" onclick="setSsupFormFilter('all', this)">All SSUP</button>
+                        <button class="preset-pill" id="ssupPillNew" onclick="setSsupFormFilter('new', this)">New Forms Only</button>
                     </div>
                     <div class="section-filter-divider"></div>
                     <input class="section-search" type="text" id="ssupSearch" placeholder="Search email or domain…" oninput="renderSsupTable()" />
-                    <button class="filter-apply-btn" onclick="applyFilters()">Apply</button>
-                    <button class="filter-clear-btn" onclick="clearFilters()">Clear</button>
                 </div>
 
                 <div class="table-card" id="ssupTableCard" style="display:none;">

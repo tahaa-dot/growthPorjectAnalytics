@@ -1280,6 +1280,15 @@ function exportToCSV() {
 }
 
 /* ─── SSUP table ─────────────────────────────────────────── */
+let ssupFormFilter = 'all'; // 'all' | 'new'
+
+function setSsupFormFilter(val, btn) {
+    ssupFormFilter = val;
+    document.querySelectorAll('#ssupPillAll, #ssupPillNew').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderSsupTable();
+}
+
 function normSsup(r) {
     return typeof r.is_ssup === 'string' ? r.is_ssup.trim().toUpperCase() : '';
 }
@@ -1294,8 +1303,14 @@ function renderSsupTable() {
 
     const search = (document.getElementById('ssupSearch')?.value || '').toLowerCase();
 
+    // Emails that submitted the legacy form at least once
+    const legacyEmails = ssupFormFilter === 'new'
+        ? new Set(allData.filter(r => r.form === 'footer-contact_us_form').map(r => r.Email))
+        : null;
+
     const rows = allData
         .filter(isSsup)
+        .filter(r => !legacyEmails || !legacyEmails.has(r.Email))
         .filter(r => {
             if (!search) return true;
             return r.Email?.toLowerCase().includes(search) || getDomain(r.Email).toLowerCase().includes(search);
@@ -1309,9 +1324,10 @@ function renderSsupTable() {
     if (nb) { nb.textContent = total; nb.className = 'nav-badge' + (total > 0 ? ' visible' : ''); }
 
     if (rows.length === 0) {
+        const filterNote = ssupFormFilter === 'new' ? ' who only submitted new forms' : '';
         document.getElementById('ssupTableBody').innerHTML = `
             <tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">
-                No SSUP leads found${search ? ' matching "' + search + '"' : ''}
+                No SSUP leads found${filterNote}${search ? ' matching "' + search + '"' : ''}
             </td></tr>`;
         return;
     }
